@@ -1,0 +1,42 @@
+# Rust / Cargo
+/target
+**/target/
+**/*.rs.bk
+Cargo.lock
+
+# Environment files
+.env
+.env.*
+!.env.example
+!.env.sample
+
+# Local runtime / storage
+/data/storage_sandbox/*
+!/data/storage_sandbox/.gitkeep
+
+# Node / SvelteKit
+node_modules/
+**/node_modules/
+packages/symflow-web/.svelte-kit/
+packages/symflow-web/build/
+packages/symflow-web/dist/
+packages/symflow-web/.vite/
+packages/symflow-web/.env
+packages/symflow-web/.env.*
+!packages/symflow-web/.env.example
+
+# Tooling caches / artifacts
+.coverage/
+coverage/
+*.tsbuildinfo
+*.log
+.turbo/
+.parcel-cache/
+.vite/
+
+# Editor / OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo

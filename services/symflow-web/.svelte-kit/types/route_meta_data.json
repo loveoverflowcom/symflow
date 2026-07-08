@@ -1,0 +1,15 @@
+{
+	"/": [
+		"src/routes/+page.ts"
+	],
+	"/flows": [
+		"src/routes/flows/+page.ts"
+	],
+	"/flows/new": [],
+	"/flows/[id]": [
+		"src/routes/flows/[id]/+page.ts"
+	],
+	"/runs/[id]": [
+		"src/routes/runs/[id]/+page.ts"
+	]
+}

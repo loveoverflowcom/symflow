@@ -1,0 +1,58 @@
+# Symflow Engine — Cargo Workspace (backend Rust)
+[workspace]
+resolver = "2"
+members = [
+    "packages/symflow-core",
+    "packages/symflow-store",
+    "services/symflow-api",
+    "services/symflow-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+rust-version = "1.85"
+
+[workspace.dependencies]
+# --- async runtime ---
+tokio        = { version = "1",    features = ["full"] }
+async-trait  = "0.1"
+# --- serde / DSL ---
+serde        = { version = "1",    features = ["derive"] }
+serde_json   = "1"
+serde_yaml   = "0.9"
+# --- lỗi & log ---
+thiserror    = "1"
+anyhow       = "1"
+tracing      = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+# --- tiện ích ---
+uuid         = { version = "1",    features = ["v4", "serde"] }
+chrono       = { version = "0.4",  features = ["serde"] }
+regex        = "1"
+once_cell    = "1"
+# --- đồ thị DAG ---
+petgraph     = "0.6"
+# --- HTTP client (LLM + scraper) ---
+reqwest      = { version = "0.12", default-features = false, features = ["json", "stream", "rustls-tls"] }
+scraper      = "0.20"
+# --- PDF ---
+lopdf        = "0.34"
+# --- CSDL ---
+sqlx = { version = "0.8", features = [
+    "runtime-tokio", "tls-rustls",
+    "postgres", "mysql",
+    "uuid", "chrono", "json", "migrate",
+] }
+# --- web server ---
+axum         = { version = "0.7",  features = ["ws"] }
+tower-http   = { version = "0.6",  features = ["cors", "trace"] }
+# --- CLI ---
+clap         = { version = "4",    features = ["derive"] }
+# --- config ---
+dotenvy      = "0.15"
+
+# crate nội bộ (path)
+symflow-core  = { path = "packages/symflow-core" }
+symflow-store = { path = "packages/symflow-store" }
