@@ -1,6 +1,7 @@
-import "./index-server.js";
+import { t as __exportAll } from "./rolldown-runtime.js";
 import "./internal.js";
-import { A as component_root, B as component_context, D as get, E as active_reaction, F as init_operations, G as hydrating, H as push, I as mutable_source, J as hydration_mismatch, K as set_hydrate_node, L as set, M as create_text, N as get_first_child, O as set_active_effect, P as get_next_sibling, Q as hydration_failed, R as flushSync, S as is_passive_event, T as active_effect, U as async_mode_flag, V as pop, W as hydrate_node, Z as HYDRATION_ERROR, et as LEGACY_PROPS, j as clear_text_content, k as set_active_reaction, m as setContext, nt as array_from, o as render, q as set_hydrating, r as derived, rt as define_property, z as boundary } from "./server.js";
+import { $ as experimental_async_required, A as component_root, B as component_context, D as get, E as active_reaction, F as init_operations, G as hydrating, H as push, I as mutable_source, J as hydration_mismatch, K as set_hydrate_node, L as set, M as create_text, N as get_first_child, O as set_active_effect, P as get_next_sibling, Q as hydration_failed, R as flushSync, S as is_passive_event, T as active_effect, U as async_mode_flag, V as pop, W as hydrate_node, Z as HYDRATION_ERROR, _ as hydratable_serialization_failed, a as render, at as run, d as getAllContexts, et as LEGACY_PROPS, f as getContext, h as ssr_context, it as noop, j as clear_text_content, k as set_active_reaction, l as get_render_context, m as setContext, n as derived, nt as array_from, p as hasContext, q as set_hydrating, rt as define_property, u as createContext, v as lifecycle_function_unavailable, y as getAbortSignal, z as boundary } from "./server.js";
+import * as devalue from "devalue";
 //#region \0virtual:__sveltekit/server
 var read_implementation = null;
 function set_read_implementation(fn) {
@@ -116,7 +117,7 @@ function assign_nodes(start, end) {
 * @param {MountOptions<Props>} options
 * @returns {Exports}
 */
-function mount(component, options) {
+function mount$1(component, options) {
 	return _mount(component, options);
 }
 /**
@@ -144,7 +145,7 @@ function mount(component, options) {
 * 	}} options
 * @returns {Exports}
 */
-function hydrate(component, options) {
+function hydrate$1(component, options) {
 	init_operations();
 	options.intro = options.intro ?? false;
 	const target = options.target;
@@ -169,7 +170,7 @@ function hydrate(component, options) {
 		init_operations();
 		clear_text_content(target);
 		set_hydrating(false);
-		return mount(component, options);
+		return mount$1(component, options);
 	} finally {
 		set_hydrating(was_hydrating);
 		set_hydrate_node(previous_hydrate_node);
@@ -273,7 +274,7 @@ var mounted_components = /* @__PURE__ */ new WeakMap();
 * @param {{ outro?: boolean }} [options]
 * @returns {Promise<void>}
 */
-function unmount(component, options) {
+function unmount$1(component, options) {
 	const fn = mounted_components.get(component);
 	if (fn) {
 		mounted_components.delete(component);
@@ -350,7 +351,7 @@ var Svelte4Component = class {
 				return Reflect.set(target, prop, value);
 			}
 		});
-		this.#instance = (options.hydrate ? hydrate : mount)(options.component, {
+		this.#instance = (options.hydrate ? hydrate$1 : mount$1)(options.component, {
 			target: options.target,
 			anchor: options.anchor,
 			props,
@@ -378,7 +379,7 @@ var Svelte4Component = class {
 			Object.assign(props, next);
 		};
 		this.#instance.$destroy = () => {
-			unmount(this.#instance);
+			unmount$1(this.#instance);
 		};
 	}
 	/** @param {Record<string, any>} props */
@@ -474,6 +475,136 @@ value: (onfulfilled, onrejected) => {
 	component_constructor.render = _render;
 	return component_constructor;
 }
+//#endregion
+//#region node_modules/svelte/src/internal/server/hydratable.js
+/** @import { HydratableLookupEntry } from '#server' */
+/**
+* @template T
+* @param {string} key
+* @param {() => T} fn
+* @returns {T}
+*/
+function hydratable(key, fn) {
+	if (!async_mode_flag) experimental_async_required("hydratable");
+	const { hydratable } = get_render_context();
+	let entry = hydratable.lookup.get(key);
+	if (entry !== void 0) return entry.value;
+	const value = fn();
+	entry = encode(key, value, hydratable.unresolved_promises);
+	hydratable.lookup.set(key, entry);
+	return value;
+}
+/**
+* @param {string} key
+* @param {any} value
+* @param {Map<Promise<any>, string>} [unresolved]
+*/
+function encode(key, value, unresolved) {
+	/** @type {HydratableLookupEntry} */
+	const entry = {
+		value,
+		serialized: ""
+	};
+	let uid = 1;
+	entry.serialized = devalue.uneval(entry.value, (value, uneval) => {
+		if (is_promise(value)) {
+			const placeholder = `"${uid++}"`;
+			const p = value.then((v) => {
+				entry.serialized = entry.serialized.replace(placeholder, () => `r(${uneval(v)})`);
+			}).catch((devalue_error) => hydratable_serialization_failed(key, serialization_stack(entry.stack, devalue_error?.stack)));
+			unresolved?.set(p, key);
+			p.catch(() => {}).finally(() => unresolved?.delete(p));
+			(entry.promises ??= []).push(p);
+			return placeholder;
+		}
+	});
+	return entry;
+}
+/**
+* @param {any} value
+* @returns {value is Promise<any>}
+*/
+function is_promise(value) {
+	return Object.prototype.toString.call(value) === "[object Promise]";
+}
+/**
+* @param {string | undefined} root_stack
+* @param {string | undefined} uneval_stack
+*/
+function serialization_stack(root_stack, uneval_stack) {
+	let out = "";
+	if (root_stack) out += root_stack + "\n";
+	if (uneval_stack) out += "Caused by:\n" + uneval_stack + "\n";
+	return out || "<missing stack trace>";
+}
+//#endregion
+//#region node_modules/svelte/src/internal/server/blocks/snippet.js
+/** @import { Snippet } from 'svelte' */
+/** @import { Renderer } from '../renderer' */
+/** @import { Getters } from '#shared' */
+/**
+* Create a snippet programmatically
+* @template {unknown[]} Params
+* @param {(...params: Getters<Params>) => {
+*   render: () => string
+*   setup?: (element: Element) => void | (() => void)
+* }} fn
+* @returns {Snippet<Params>}
+*/
+function createRawSnippet(fn) {
+	return (renderer, ...args) => {
+		var getters = args.map((value) => () => value);
+		renderer.push(fn(...getters).render().trim());
+	};
+}
+//#endregion
+//#region node_modules/svelte/src/index-server.js
+/** @import { SSRContext } from '#server' */
+/** @import { Renderer } from './internal/server/renderer.js' */
+var index_server_exports = /* @__PURE__ */ __exportAll({
+	afterUpdate: () => noop,
+	beforeUpdate: () => noop,
+	createContext: () => createContext,
+	createEventDispatcher: () => createEventDispatcher,
+	createRawSnippet: () => createRawSnippet,
+	flushSync: () => noop,
+	fork: () => fork,
+	getAbortSignal: () => getAbortSignal,
+	getAllContexts: () => getAllContexts,
+	getContext: () => getContext,
+	hasContext: () => hasContext,
+	hydratable: () => hydratable,
+	hydrate: () => hydrate,
+	mount: () => mount,
+	onDestroy: () => onDestroy,
+	onMount: () => noop,
+	setContext: () => setContext,
+	settled: () => settled,
+	tick: () => tick,
+	unmount: () => unmount,
+	untrack: () => run
+});
+/** @param {() => void} fn */
+function onDestroy(fn) {
+	/** @type {Renderer} */ ssr_context.r.on_destroy(fn);
+}
+function createEventDispatcher() {
+	return noop;
+}
+function mount() {
+	lifecycle_function_unavailable("mount");
+}
+function hydrate() {
+	lifecycle_function_unavailable("hydrate");
+}
+function unmount() {
+	lifecycle_function_unavailable("unmount");
+}
+function fork() {
+	lifecycle_function_unavailable("fork");
+}
+async function tick() {}
+async function settled() {}
 //#endregion
 //#region .svelte-kit/generated/root.svelte
 function Root($$renderer, $$props) {
@@ -571,7 +702,7 @@ var options = {
 		app: ({ head, body, assets, nonce, env }) => "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    " + head + "\n  </head>\n  <body data-sveltekit-preload-data=\"hover\">\n    <div style=\"display: contents\">" + body + "</div>\n  </body>\n</html>\n",
 		error: error_template_default
 	},
-	version_hash: "1fbd7sv"
+	version_hash: "m6g3sh"
 };
 async function get_hooks() {
 	let handle;
@@ -579,6 +710,7 @@ async function get_hooks() {
 	let handleError;
 	let handleValidationError;
 	let init;
+	({handle, handleFetch, handleError, handleValidationError, init} = await import("../entries/hooks.server.js"));
 	let reroute;
 	let transport;
 	return {
@@ -592,4 +724,4 @@ async function get_hooks() {
 	};
 }
 //#endregion
-export { set_read_implementation as a, set_manifest as i, options as n, read_implementation as r, get_hooks as t };
+export { set_manifest as a, read_implementation as i, options as n, set_read_implementation as o, index_server_exports as r, get_hooks as t };

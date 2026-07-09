@@ -2,7 +2,7 @@
 /target
 **/target/
 **/*.rs.bk
-Cargo.lock
+/Cargo.lock
 
 # Environment files
 .env
@@ -11,19 +11,19 @@ Cargo.lock
 !.env.sample
 
 # Local runtime / storage
-/data/storage_sandbox/*
-!/data/storage_sandbox/.gitkeep
+services/symflow-api/data/storage_sandbox/*
+!services/symflow-api/data/storage_sandbox/.gitkeep
 
 # Node / SvelteKit
 node_modules/
 **/node_modules/
-packages/symflow-web/.svelte-kit/
-packages/symflow-web/build/
-packages/symflow-web/dist/
-packages/symflow-web/.vite/
-packages/symflow-web/.env
-packages/symflow-web/.env.*
-!packages/symflow-web/.env.example
+services/symflow-web/.svelte-kit/
+services/symflow-web/build/
+services/symflow-web/dist/
+services/symflow-web/.vite/
+services/symflow-web/.env
+services/symflow-web/.env.*
+!services/symflow-web/.env.example
 
 # Tooling caches / artifacts
 .coverage/

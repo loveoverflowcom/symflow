@@ -3,6 +3,7 @@ name = "symflow-store"
 version.workspace = true
 edition.workspace = true
 license.workspace = true
+workspace = "../../services/symflow-api"
 
 [dependencies]
 symflow-core = { workspace = true }

@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { getRunLogsWebSocketUrl, parseLogMessage } from '$lib/api/client';
+  import { language, t } from '$lib/i18n';
   import type { AgentLogEvent } from '$lib/types/symflow';
   import { formatDate, prettyJson } from '$lib/utils/format';
 
@@ -14,7 +15,7 @@
 
   let initialized = $state(false);
   let logs = $state<AgentLogEvent[]>([]);
-  let wsState = $state('Connecting...');
+  let wsStateKey = $state('connecting');
 
   $effect(() => {
     if (initialized) return;
@@ -35,32 +36,32 @@
     const wsUrl = getRunLogsWebSocketUrl(runId);
 
     if (!wsUrl) {
-      wsState = 'Mock mode';
+      wsStateKey = 'mockMode';
       return;
     }
 
     try {
       socket = new WebSocket(wsUrl);
       socket.onopen = () => {
-        wsState = 'Live';
+        wsStateKey = 'live';
       };
       socket.onerror = () => {
-        wsState = 'Unavailable';
+        wsStateKey = 'unavailable';
       };
       socket.onclose = () => {
-        wsState = 'Disconnected';
+        wsStateKey = 'disconnected';
       };
       socket.onmessage = (event) => {
         if (typeof event.data === 'string') {
           try {
             pushLog(parseLogMessage(event.data));
           } catch {
-            wsState = 'Invalid log payload';
+            wsStateKey = 'invalidLogPayload';
           }
         }
       };
     } catch {
-      wsState = 'Unavailable';
+      wsStateKey = 'unavailable';
     }
 
     return () => {
@@ -71,22 +72,22 @@
 
 <section class="stack card">
   <div class="row-between">
-    <h2>ReAct log</h2>
-    <span class="muted">{wsState}</span>
+    <h2>{t($language, 'reactLog')}</h2>
+    <span class="muted">{t($language, wsStateKey)}</span>
   </div>
 
   {#if logs.length === 0}
-    <p class="muted">No log events yet.</p>
+    <p class="muted">{t($language, 'noLogEvents')}</p>
   {:else}
     <div class="stack">
       {#each logs as log, index}
         <article class="log-entry">
           <div class="row-between log-meta">
-            <strong>{log.type ?? 'event'}</strong>
+            <strong>{log.type ?? t($language, 'event')}</strong>
             <span class="muted">
               #{index + 1}
               {#if log.iter !== undefined}
-                · iter {log.iter}
+                · {t($language, 'iter')} {log.iter}
               {/if}
               {#if log.timestamp}
                 · {formatDate(log.timestamp)}
@@ -95,11 +96,11 @@
           </div>
 
           {#if log.stepId}
-            <p><strong>Step:</strong> {log.stepId}</p>
+            <p><strong>{t($language, 'step')}:</strong> {log.stepId}</p>
           {/if}
 
           {#if log.tool}
-            <p><strong>Tool:</strong> {log.tool}</p>
+            <p><strong>{t($language, 'tool')}:</strong> {log.tool}</p>
           {/if}
 
           {#if log.text}

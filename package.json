@@ -1,7 +1,0 @@
-{
-  "name": "symflow-monorepo",
-  "private": true,
-  "workspaces": [
-    "services/symflow-web"
-  ]
-}

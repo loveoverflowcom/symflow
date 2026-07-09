@@ -1,6 +1,6 @@
+pub mod local_file_reader;
 pub mod manual_trigger;
 pub mod web_scraper;
-pub mod local_file_reader;
 
 use crate::dsl::StepType;
 use crate::error::NodeError;
@@ -24,9 +24,9 @@ pub trait NodeExec: Send + Sync {
 
 pub fn build_node(step_type: StepType) -> Option<Box<dyn NodeExec>> {
     match step_type {
-        StepType::ManualTrigger  => Some(Box::new(manual_trigger::ManualTriggerNode)),
-        StepType::WebScraper     => Some(Box::new(web_scraper::WebScraperNode)),
-        StepType::LocalFileReader=> Some(Box::new(local_file_reader::LocalFileReaderNode)),
-        StepType::AiAgent        => None,
+        StepType::ManualTrigger => Some(Box::new(manual_trigger::ManualTriggerNode)),
+        StepType::WebScraper => Some(Box::new(web_scraper::WebScraperNode)),
+        StepType::LocalFileReader => Some(Box::new(local_file_reader::LocalFileReaderNode)),
+        StepType::AiAgent => None,
     }
 }

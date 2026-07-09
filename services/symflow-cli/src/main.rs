@@ -66,18 +66,21 @@ fn print_agents() -> anyhow::Result<()> {
     Ok(())
 }
 
-async fn run_file(file: PathBuf, inputs: Option<String>, sandbox_dir: Option<PathBuf>) -> anyhow::Result<()> {
+async fn run_file(
+    file: PathBuf,
+    inputs: Option<String>,
+    sandbox_dir: Option<PathBuf>,
+) -> anyhow::Result<()> {
     let source = tokio::fs::read_to_string(&file)
         .await
         .with_context(|| format!("failed to read {}", file.display()))?;
 
     let fallback_id = file.file_stem().and_then(|s| s.to_str());
-    let flow = parse_flow_script(&source, fallback_id)
-        .map_err(|err| anyhow::anyhow!(err.to_string()))?;
+    let flow =
+        parse_flow_script(&source, fallback_id).map_err(|err| anyhow::anyhow!(err.to_string()))?;
     flow.validate()
         .map_err(|err| anyhow::anyhow!(err.to_string()))?;
-    compiler::compile(&flow)
-        .map_err(|err| anyhow::anyhow!(err.to_string()))?;
+    compiler::compile(&flow).map_err(|err| anyhow::anyhow!(err.to_string()))?;
 
     let initial_inputs = parse_inputs(inputs)?;
     let sandbox_dir = sandbox_dir.unwrap_or_else(default_sandbox_dir);
@@ -139,7 +142,8 @@ fn print_event(event: &RunEvent) {
                 event.step_id.as_deref().unwrap_or("-"),
                 event.iter.unwrap_or_default(),
                 event.tool.as_deref().unwrap_or_default(),
-                serde_json::to_string_pretty(event.arguments.as_ref().unwrap_or(&Value::Null)).unwrap_or_default()
+                serde_json::to_string_pretty(event.arguments.as_ref().unwrap_or(&Value::Null))
+                    .unwrap_or_default()
             );
         }
         symflow_core::events::EventKind::Observation => {
@@ -158,7 +162,8 @@ fn print_event(event: &RunEvent) {
                 event.text.as_deref().unwrap_or_default()
             );
         }
-        symflow_core::events::EventKind::StepStatus | symflow_core::events::EventKind::RunStatus => {
+        symflow_core::events::EventKind::StepStatus
+        | symflow_core::events::EventKind::RunStatus => {
             println!(
                 "[status] {} {}",
                 event.step_id.as_deref().unwrap_or("run"),
@@ -171,8 +176,8 @@ fn print_event(event: &RunEvent) {
 fn parse_inputs(raw: Option<String>) -> anyhow::Result<Value> {
     match raw {
         Some(text) if !text.trim().is_empty() => {
-            let parsed = serde_json::from_str(&text)
-                .with_context(|| "inputs must be valid JSON")?;
+            let parsed =
+                serde_json::from_str(&text).with_context(|| "inputs must be valid JSON")?;
             Ok(parsed)
         }
         _ => Ok(Value::Object(Map::new())),

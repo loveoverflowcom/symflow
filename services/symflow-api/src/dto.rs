@@ -40,7 +40,11 @@ impl From<FlowRecord> for FlowDetail {
 
 impl From<FlowSummary> for FlowSummaryDto {
     fn from(flow: FlowSummary) -> Self {
-        Self { id: flow.id, name: flow.name, created_at: flow.created_at }
+        Self {
+            id: flow.id,
+            name: flow.name,
+            created_at: flow.created_at,
+        }
     }
 }
 
@@ -100,7 +104,9 @@ pub struct CreateFlowResponse {
 
 impl CreateFlowResponse {
     pub fn new(flow: FlowRecord) -> Self {
-        Self { flow: FlowDetail::from(flow) }
+        Self {
+            flow: FlowDetail::from(flow),
+        }
     }
 }
 
@@ -112,6 +118,8 @@ pub struct CreateRunResponse {
 
 impl CreateRunResponse {
     pub fn new(run: RunRecord, steps: Vec<StepRecord>) -> Self {
-        Self { run: RunDetail::new(run, steps) }
+        Self {
+            run: RunDetail::new(run, steps),
+        }
     }
 }

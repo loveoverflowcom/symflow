@@ -3,9 +3,10 @@ import { getFlowMock, getRunMock, listFlowsMock, saveFlowMock, triggerRunMock } 
 
 describe('mock api', () => {
   it('saves flows and makes them available to list/get calls', async () => {
+    const dsl = '{"flow_id":"test-flow","name":"Test flow","steps":[]}';
     const saved = await saveFlowMock({
       name: 'Test flow',
-      dsl_script: 'name: test-flow\nsteps: []'
+      dsl_script: dsl
     });
 
     const flows = await listFlowsMock();
@@ -15,7 +16,7 @@ describe('mock api', () => {
     expect(fetched).toMatchObject({
       id: saved.id,
       name: 'Test flow',
-      dsl_script: 'name: test-flow\nsteps: []'
+      dsl_script: JSON.stringify(JSON.parse(dsl), null, 2)
     });
   });
 

@@ -15,10 +15,10 @@ pub enum RunStatus {
 impl RunStatus {
     pub fn as_db_str(self) -> &'static str {
         match self {
-            RunStatus::Pending  => "PENDING",
-            RunStatus::Running  => "RUNNING",
-            RunStatus::Success  => "SUCCESS",
-            RunStatus::Failed   => "FAILED",
+            RunStatus::Pending => "PENDING",
+            RunStatus::Running => "RUNNING",
+            RunStatus::Success => "SUCCESS",
+            RunStatus::Failed => "FAILED",
         }
     }
     pub fn from_db_str(s: &str) -> Option<Self> {
@@ -26,7 +26,7 @@ impl RunStatus {
             "PENDING" => Some(RunStatus::Pending),
             "RUNNING" => Some(RunStatus::Running),
             "SUCCESS" => Some(RunStatus::Success),
-            "FAILED"  => Some(RunStatus::Failed),
+            "FAILED" => Some(RunStatus::Failed),
             _ => None,
         }
     }
@@ -51,20 +51,20 @@ pub enum StepStatus {
 impl StepStatus {
     pub fn as_db_str(self) -> &'static str {
         match self {
-            StepStatus::Pending   => "PENDING",
-            StepStatus::Running   => "RUNNING",
+            StepStatus::Pending => "PENDING",
+            StepStatus::Running => "RUNNING",
             StepStatus::Completed => "COMPLETED",
-            StepStatus::Failed    => "FAILED",
-            StepStatus::Skipped   => "SKIPPED",
+            StepStatus::Failed => "FAILED",
+            StepStatus::Skipped => "SKIPPED",
         }
     }
     pub fn from_db_str(s: &str) -> Option<Self> {
         match s {
-            "PENDING"   => Some(StepStatus::Pending),
-            "RUNNING"   => Some(StepStatus::Running),
+            "PENDING" => Some(StepStatus::Pending),
+            "RUNNING" => Some(StepStatus::Running),
             "COMPLETED" => Some(StepStatus::Completed),
-            "FAILED"    => Some(StepStatus::Failed),
-            "SKIPPED"   => Some(StepStatus::Skipped),
+            "FAILED" => Some(StepStatus::Failed),
+            "SKIPPED" => Some(StepStatus::Skipped),
             _ => None,
         }
     }

@@ -1,7 +1,9 @@
 import * as httpApi from '$lib/api/http';
+import * as authHttpApi from '$lib/api/auth';
 import * as mockApi from '$lib/api/mock';
 import { resolveApiMode, type ApiEnv, type ApiMode } from '$lib/api/mode';
 import type { AgentLogEvent, FlowDetail, FlowRun, FlowSummary, FlowUpsertPayload } from '$lib/types/symflow';
+import type { AuthUser, LoginPayload, RegisterPayload } from '$lib/auth/types';
 
 export type { ApiMode } from '$lib/api/mode';
 export { ApiError } from '$lib/api/http';
@@ -14,10 +16,14 @@ type ApiClient = {
   getRun: typeof httpApi.getRun;
   getRunLogsWebSocketUrl: typeof httpApi.getRunLogsWebSocketUrl;
   parseLogMessage: typeof httpApi.parseLogMessage;
+  registerUser: typeof authHttpApi.registerUser;
+  loginUser: typeof authHttpApi.loginUser;
+  logoutUser: typeof authHttpApi.logoutUser;
+  getMe: typeof authHttpApi.getMe;
 };
 
 const apiClients: Record<ApiMode, ApiClient> = {
-  production: httpApi,
+  production: { ...httpApi, ...authHttpApi },
   mock: mockApi,
 };
 
@@ -57,4 +63,26 @@ export function getRunLogsWebSocketUrl(runId: string): string {
 
 export function parseLogMessage(data: string): AgentLogEvent {
   return api.parseLogMessage(data);
+}
+
+export async function registerUser(
+  payload: RegisterPayload,
+  fetchImpl: typeof fetch = fetch
+): Promise<AuthUser> {
+  return api.registerUser(payload, fetchImpl);
+}
+
+export async function loginUser(
+  payload: LoginPayload,
+  fetchImpl: typeof fetch = fetch
+): Promise<AuthUser> {
+  return api.loginUser(payload, fetchImpl);
+}
+
+export async function logoutUser(fetchImpl: typeof fetch = fetch): Promise<void> {
+  return api.logoutUser(fetchImpl);
+}
+
+export async function getMe(fetchImpl: typeof fetch = fetch): Promise<AuthUser> {
+  return api.getMe(fetchImpl);
 }

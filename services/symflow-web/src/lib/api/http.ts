@@ -1,6 +1,7 @@
 import type { AgentLogEvent, FlowDetail, FlowRun, FlowSummary, FlowUpsertPayload } from '$lib/types/symflow';
+import { createApiUrl, createWebSocketUrl, resolveApiBaseUrl } from '$lib/api/url';
 
-const apiBaseUrl = import.meta.env.PUBLIC_API_BASE_URL || 'http://127.0.0.1:8787';
+const apiBaseUrl = resolveApiBaseUrl();
 
 export class ApiError extends Error {
   status: number;
@@ -14,7 +15,7 @@ export class ApiError extends Error {
   }
 }
 
-async function parseResponse<T>(response: Response): Promise<T> {
+export async function parseResponse<T>(response: Response): Promise<T> {
   if (response.ok) {
     if (response.status === 204) {
       return undefined as T;
@@ -29,17 +30,17 @@ async function parseResponse<T>(response: Response): Promise<T> {
   throw new ApiError(response.status, message, details);
 }
 
-function createUrl(path: string): string {
-  return new URL(path, `${apiBaseUrl}/`).toString();
+export function createUrl(path: string): string {
+  return createApiUrl(path, apiBaseUrl);
 }
 
 export async function listFlows(fetchImpl: typeof fetch = fetch): Promise<FlowSummary[]> {
-  const response = await fetchImpl(createUrl('/api/flows'));
+  const response = await fetchImpl(createUrl('/api/flows'), { credentials: 'include' });
   return parseResponse<FlowSummary[]>(response);
 }
 
 export async function getFlow(id: string, fetchImpl: typeof fetch = fetch): Promise<FlowDetail> {
-  const response = await fetchImpl(createUrl(`/api/flows/${id}`));
+  const response = await fetchImpl(createUrl(`/api/flows/${id}`), { credentials: 'include' });
   return parseResponse<FlowDetail>(response);
 }
 
@@ -50,6 +51,7 @@ export async function saveFlow(payload: FlowUpsertPayload, fetchImpl: typeof fet
     headers: {
       'content-type': 'application/json'
     },
+    credentials: 'include',
     body: JSON.stringify(payload)
   });
 
@@ -66,6 +68,7 @@ export async function triggerRun(
     headers: {
       'content-type': 'application/json'
     },
+    credentials: 'include',
     body: JSON.stringify({ inputs })
   });
 
@@ -73,14 +76,12 @@ export async function triggerRun(
 }
 
 export async function getRun(runId: string, fetchImpl: typeof fetch = fetch): Promise<FlowRun> {
-  const response = await fetchImpl(createUrl(`/api/runs/${runId}`));
+  const response = await fetchImpl(createUrl(`/api/runs/${runId}`), { credentials: 'include' });
   return parseResponse<FlowRun>(response);
 }
 
 export function getRunLogsWebSocketUrl(runId: string): string {
-  const url = new URL(createUrl(`/api/runs/${runId}/logs`));
-  url.protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-  return url.toString();
+  return createWebSocketUrl(`/api/runs/${runId}/logs`, apiBaseUrl);
 }
 
 export function parseLogMessage(data: string): AgentLogEvent {

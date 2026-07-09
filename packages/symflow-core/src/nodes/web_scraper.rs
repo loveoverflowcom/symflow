@@ -13,9 +13,11 @@ impl NodeExec for WebScraperNode {
         let args: WebScraperArgs = serde_json::from_value(ctx.resolved_with.clone())
             .map_err(|e| NodeError::Scraper(format!("tham số không hợp lệ: {e}")))?;
 
-        let html = reqwest::get(&args.url).await
+        let html = reqwest::get(&args.url)
+            .await
             .map_err(|e| NodeError::Scraper(format!("HTTP lỗi: {e}")))?
-            .text().await
+            .text()
+            .await
             .map_err(|e| NodeError::Scraper(format!("đọc body lỗi: {e}")))?;
 
         let raw_text = extract_text(&html);
@@ -26,7 +28,9 @@ impl NodeExec for WebScraperNode {
 fn extract_text(html: &str) -> String {
     let doc = Html::parse_document(html);
     let sel_body = Selector::parse("body").unwrap();
-    let iter = doc.select(&sel_body).next()
+    let iter = doc
+        .select(&sel_body)
+        .next()
         .map(|b| b.text().collect::<Vec<_>>().join(" "))
         .unwrap_or_else(|| doc.root_element().text().collect::<Vec<_>>().join(" "));
     iter.split_whitespace().collect::<Vec<_>>().join(" ")

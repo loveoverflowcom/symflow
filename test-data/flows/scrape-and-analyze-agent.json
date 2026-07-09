@@ -1,0 +1,39 @@
+{
+  "flow_id": "scrape-and-analyze-agent",
+  "name": "Scrape And Analyze Agent",
+  "steps": [
+    {
+      "id": "receive_url",
+      "type": "manual_trigger",
+      "with": {
+        "url": "https://example.com"
+      }
+    },
+    {
+      "id": "scrape_page",
+      "type": "web_scraper",
+      "needs": [
+        "receive_url"
+      ],
+      "with": {
+        "url": "{{steps.receive_url.url}}"
+      }
+    },
+    {
+      "id": "analyze_text",
+      "type": "ai_agent",
+      "needs": [
+        "scrape_page"
+      ],
+      "with": {
+        "model": "gpt-4o-mini",
+        "max_iterations": 4,
+        "allowed_tools": [
+          "string_analyzer"
+        ],
+        "goal": "Analyze the scraped page text and return a concise summary with word and character counts.",
+        "context": "URL: {{steps.scrape_page.url}}\n\nText:\n{{steps.scrape_page.raw_text}}\n"
+      }
+    }
+  ]
+}

@@ -1,8 +1,12 @@
 
 
 export const index = 0;
-let component_cache;
-export const component = async () => component_cache ??= (await import('../entries/pages/_layout.svelte.js')).default;
-export const imports = ["_app/immutable/nodes/0.8FP1QgHN.js","_app/immutable/chunks/qANOEdph.js","_app/immutable/chunks/DK3Fl9T5.js","_app/immutable/chunks/xihTtKlq.js","_app/immutable/chunks/DSRQmbPz.js"];
-export const stylesheets = ["_app/immutable/assets/0.C4uzqtTn.css"];
+export const universal = {
+  "ssr": false,
+  "prerender": false,
+  "load": null
+};
+export const universal_id = "src/routes/+layout.ts";
+export const imports = ["_app/immutable/nodes/0.DSEEOqF2.js","_app/immutable/chunks/RutK8sDS.js","_app/immutable/chunks/Cp59exFT.js","_app/immutable/chunks/xihTtKlq.js","_app/immutable/chunks/DsFK8jGk.js","_app/immutable/chunks/3Xtujnhc.js"];
+export const stylesheets = ["_app/immutable/assets/0.CCxRy8Xf.css"];
 export const fonts = [];

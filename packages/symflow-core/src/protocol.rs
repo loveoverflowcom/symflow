@@ -18,16 +18,26 @@ pub struct ToolOutput {
 
 impl ToolOutput {
     pub fn text(s: impl Into<String>) -> Self {
-        ToolOutput { content: vec![ToolContent::Text(s.into())], is_error: false }
+        ToolOutput {
+            content: vec![ToolContent::Text(s.into())],
+            is_error: false,
+        }
     }
     pub fn error(s: impl Into<String>) -> Self {
-        ToolOutput { content: vec![ToolContent::Text(s.into())], is_error: true }
+        ToolOutput {
+            content: vec![ToolContent::Text(s.into())],
+            is_error: true,
+        }
     }
     pub fn to_text(&self) -> String {
-        self.content.iter().map(|c| match c {
-            ToolContent::Text(t) => t.clone(),
-            ToolContent::Resource { uri, .. } => format!("[resource: {uri}]"),
-        }).collect::<Vec<_>>().join("\n")
+        self.content
+            .iter()
+            .map(|c| match c {
+                ToolContent::Text(t) => t.clone(),
+                ToolContent::Resource { uri, .. } => format!("[resource: {uri}]"),
+            })
+            .collect::<Vec<_>>()
+            .join("\n")
     }
 }
 
@@ -57,14 +67,20 @@ pub struct Registry {
 }
 
 impl Registry {
-    pub fn new() -> Self { Registry { agents: Vec::new() } }
+    pub fn new() -> Self {
+        Registry { agents: Vec::new() }
+    }
 
-    pub fn register(&mut self, agent: Box<dyn Agent>) { self.agents.push(agent); }
+    pub fn register(&mut self, agent: Box<dyn Agent>) {
+        self.agents.push(agent);
+    }
 
     pub fn find_tool(&self, name: &str) -> Option<Box<dyn Tool>> {
         for agent in &self.agents {
             for tool in agent.tools() {
-                if tool.name() == name { return Some(tool); }
+                if tool.name() == name {
+                    return Some(tool);
+                }
             }
         }
         None
@@ -78,7 +94,9 @@ impl Registry {
         let mut result = Vec::new();
         for cap in allowed {
             if let Some(agent) = self.agents.iter().find(|a| a.id() == cap.as_str()) {
-                for tool in agent.tools() { result.push(tool.name().to_string()); }
+                for tool in agent.tools() {
+                    result.push(tool.name().to_string());
+                }
             } else {
                 result.push(cap.clone());
             }
@@ -121,4 +139,8 @@ impl Registry {
     }
 }
 
-impl Default for Registry { fn default() -> Self { Self::new() } }
+impl Default for Registry {
+    fn default() -> Self {
+        Self::new()
+    }
+}

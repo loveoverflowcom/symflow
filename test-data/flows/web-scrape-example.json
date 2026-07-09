@@ -1,0 +1,23 @@
+{
+  "flow_id": "web-scrape-example",
+  "name": "Web Scrape Example",
+  "steps": [
+    {
+      "id": "receive_url",
+      "type": "manual_trigger",
+      "with": {
+        "url": "https://example.com"
+      }
+    },
+    {
+      "id": "scrape_page",
+      "type": "web_scraper",
+      "needs": [
+        "receive_url"
+      ],
+      "with": {
+        "url": "{{steps.receive_url.url}}"
+      }
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "flow_id": "write-file-agent",
+  "name": "Write File Agent",
+  "steps": [
+    {
+      "id": "file_request",
+      "type": "manual_trigger",
+      "with": {
+        "filename": "agent-note.txt",
+        "content": "Symflow wrote this file through an agent tool."
+      }
+    },
+    {
+      "id": "write_file",
+      "type": "ai_agent",
+      "needs": [
+        "file_request"
+      ],
+      "with": {
+        "model": "gpt-4o-mini",
+        "max_iterations": 4,
+        "allowed_tools": [
+          "local_file_writer"
+        ],
+        "goal": "Write a file named agent-note.txt with the provided content, then finish\nwith a short confirmation.\n",
+        "context": "filename: {{steps.file_request.filename}}\ncontent: {{steps.file_request.content}}\n"
+      }
+    }
+  ]
+}

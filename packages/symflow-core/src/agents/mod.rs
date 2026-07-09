@@ -1,7 +1,7 @@
+pub mod chart;
 pub mod core;
 pub mod pdf;
 pub mod scraper;
-pub mod chart;
 
 use crate::protocol::{Agent, Registry};
 

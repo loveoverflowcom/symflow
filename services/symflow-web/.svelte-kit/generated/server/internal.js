@@ -26,7 +26,7 @@ export const options = {
 		app: ({ head, body, assets, nonce, env }) => "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    " + head + "\n  </head>\n  <body data-sveltekit-preload-data=\"hover\">\n    <div style=\"display: contents\">" + body + "</div>\n  </body>\n</html>\n",
 		error
 	},
-	version_hash: "eqoaa8"
+	version_hash: "1p7oc8k"
 };
 
 export async function get_hooks() {
@@ -35,7 +35,7 @@ export async function get_hooks() {
 	let handleError;
 	let handleValidationError;
 	let init;
-	
+	({ handle, handleFetch, handleError, handleValidationError, init } = await import("../../../src/hooks.server.ts"));
 
 	let reroute;
 	let transport;

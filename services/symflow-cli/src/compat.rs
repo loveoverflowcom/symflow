@@ -8,7 +8,8 @@ pub fn parse_flow_script(src: &str, fallback_id: Option<&str>) -> Result<Flow, C
         return Ok(flow);
     }
 
-    let raw: Value = serde_yaml::from_str(src).map_err(|err| CompileError::Parse(err.to_string()))?;
+    let raw: Value =
+        serde_yaml::from_str(src).map_err(|err| CompileError::Parse(err.to_string()))?;
     let patched = patch_legacy_flow(raw, fallback_id);
     serde_yaml::from_value::<Flow>(patched).map_err(|err| CompileError::Parse(err.to_string()))
 }
@@ -30,9 +31,15 @@ fn patch_legacy_flow(raw: Value, fallback_id: Option<&str>) -> Value {
             .and_then(Value::as_str)
             .filter(|value| !value.trim().is_empty())
         {
-            map.insert(flow_id_key.clone(), Value::String(existing_name.to_string()));
+            map.insert(
+                flow_id_key.clone(),
+                Value::String(existing_name.to_string()),
+            );
         } else {
-            map.insert(flow_id_key.clone(), Value::String(format!("flow-{}", Uuid::new_v4().simple())));
+            map.insert(
+                flow_id_key.clone(),
+                Value::String(format!("flow-{}", Uuid::new_v4().simple())),
+            );
         }
     }
 

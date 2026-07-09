@@ -1,14 +1,17 @@
 <script lang="ts">
   import { onMount } from 'svelte';
+  import type { ViewError } from '$lib/api/errors';
   import { getRun } from '$lib/api/client';
   import AppShell from '$lib/components/AppShell.svelte';
+  import InlineError from '$lib/components/InlineError.svelte';
   import JsonBlock from '$lib/components/JsonBlock.svelte';
   import ReactLogView from '$lib/components/ReactLogView.svelte';
   import StatusBadge from '$lib/components/StatusBadge.svelte';
+  import { language, t } from '$lib/i18n';
   import type { AgentLogEvent, FlowRun, StepExecution } from '$lib/types/symflow';
   import { formatDate, normalizeLogEntries } from '$lib/utils/format';
 
-  let { data } = $props<{ data: { run: FlowRun } }>();
+  let { data } = $props<{ data: { run: FlowRun | null; error: ViewError | null; runId: string } }>();
 
   let initialized = $state(false);
   let run = $state<FlowRun>({
@@ -27,20 +30,30 @@
 
   $effect(() => {
     if (initialized) return;
-    run = data.run;
+    if (data.run) {
+      run = data.run;
+    }
     initialized = true;
   });
 
   onMount(() => {
+    if (!data.run) {
+      return;
+    }
+
     if (terminalStatuses.has(run.status)) {
       return;
     }
 
     const timer = window.setInterval(async () => {
-      const nextRun = await getRun(run.id);
-      run = nextRun;
+      try {
+        const nextRun = await getRun(run.id);
+        run = nextRun;
 
-      if (terminalStatuses.has(nextRun.status)) {
+        if (terminalStatuses.has(nextRun.status)) {
+          window.clearInterval(timer);
+        }
+      } catch {
         window.clearInterval(timer);
       }
     }, 3000);
@@ -52,34 +65,46 @@
 </script>
 
 <svelte:head>
-  <title>Run {run.id} | Symflow</title>
+  <title>{t($language, 'runTitle', { id: data.run ? run.id : data.runId })} | {t($language, 'appName')}</title>
 </svelte:head>
 
-<AppShell title={`Run ${run.id}`} subtitle="Watch step status and live ReAct logs for the current flow execution.">
+<AppShell>
   {#snippet actions()}
-    <a class="secondary-button" href={`/flows/${run.flow_id}`}>Back to flow</a>
+    {#if data.run}
+      <a class="secondary-button" href={`/flows/${run.flow_id}`}>{t($language, 'backToFlow')}</a>
+    {:else}
+      <a class="secondary-button" href="/flows">{t($language, 'backToFlows')}</a>
+    {/if}
   {/snippet}
 
-  <section class="run-overview">
+  <div class="page-title-block">
+    <h1>{data.run ? t($language, 'runTitle', { id: run.id }) : t($language, 'runDetail')}</h1>
+    <p class="subtitle">{t($language, 'runSubtitle')}</p>
+  </div>
+
+  {#if data.error}
+    <InlineError error={{ ...data.error, title: t($language, 'unableLoadRun', { id: data.runId }) }} retryHref="/flows" />
+  {:else}
+    <section class="run-overview">
     <article class="card stack">
       <div class="row-between">
-        <h2>Run status</h2>
+        <h2>{t($language, 'runStatus')}</h2>
         <StatusBadge value={run.status} />
       </div>
-      <p><strong>Flow:</strong> <span class="mono">{run.flow_id}</span></p>
-      <p><strong>Started:</strong> {formatDate(run.created_at)}</p>
-      <p><strong>Finished:</strong> {formatDate(run.finished_at)}</p>
-      <JsonBlock label="Initial inputs" value={run.initial_inputs} />
+      <p><strong>{t($language, 'flow')}:</strong> <span class="mono">{run.flow_id}</span></p>
+      <p><strong>{t($language, 'started')}:</strong> {formatDate(run.created_at)}</p>
+      <p><strong>{t($language, 'finished')}:</strong> {formatDate(run.finished_at)}</p>
+      <JsonBlock label={t($language, 'initialInputs')} value={run.initial_inputs} />
     </article>
 
     <article class="card stack">
       <div class="row-between">
-        <h2>Steps</h2>
-        <span class="muted">{run.steps?.length ?? 0} total</span>
+        <h2>{t($language, 'steps')}</h2>
+        <span class="muted">{t($language, 'total', { count: run.steps?.length ?? 0 })}</span>
       </div>
 
       {#if !run.steps || run.steps.length === 0}
-        <p class="muted">No step execution data yet.</p>
+        <p class="muted">{t($language, 'noStepData')}</p>
       {:else}
         <div class="stack">
           {#each run.steps as step}
@@ -97,15 +122,16 @@
               {/if}
 
               <div class="two-column">
-                <JsonBlock label="Resolved inputs" value={step.resolved_inputs} />
-                <JsonBlock label="Outputs" value={step.outputs} />
+                <JsonBlock label={t($language, 'resolvedInputs')} value={step.resolved_inputs} />
+                <JsonBlock label={t($language, 'outputs')} value={step.outputs} />
               </div>
             </section>
           {/each}
         </div>
       {/if}
     </article>
-  </section>
+    </section>
 
-  <ReactLogView runId={run.id} {initialLogs} />
+    <ReactLogView runId={run.id} {initialLogs} />
+  {/if}
 </AppShell>

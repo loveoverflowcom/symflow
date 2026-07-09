@@ -1,0 +1,15 @@
+{
+  "flow_id": "manual-echo",
+  "name": "Manual Echo",
+  "steps": [
+    {
+      "id": "receive_input",
+      "type": "manual_trigger",
+      "with": {
+        "message": "Hello from test-data",
+        "priority": "normal",
+        "source": "manual-echo.json"
+      }
+    }
+  ]
+}

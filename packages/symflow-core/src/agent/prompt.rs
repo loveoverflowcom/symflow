@@ -5,7 +5,8 @@ pub fn init_history(goal: &str, context: &str, tool_schemas: &[Value]) -> Vec<Me
     let tools_text = if tool_schemas.is_empty() {
         String::new()
     } else {
-        let schemas: Vec<String> = tool_schemas.iter()
+        let schemas: Vec<String> = tool_schemas
+            .iter()
             .map(|t| serde_json::to_string_pretty(t).unwrap_or_default())
             .collect();
         format!("\n\nCác tool bạn có thể gọi:\n{}", schemas.join("\n\n"))
@@ -24,5 +25,8 @@ pub fn init_history(goal: &str, context: &str, tool_schemas: &[Value]) -> Vec<Me
 
 pub fn push_observation(history: &mut Vec<Message>, assistant_reply: &str, observation: &str) {
     history.push(msg("assistant", assistant_reply));
-    history.push(msg("user", format!("Observation: {observation}\n\nTiếp tục.")));
+    history.push(msg(
+        "user",
+        format!("Observation: {observation}\n\nTiếp tục."),
+    ));
 }

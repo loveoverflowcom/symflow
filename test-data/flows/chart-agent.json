@@ -1,0 +1,31 @@
+{
+  "flow_id": "chart-agent",
+  "name": "Chart Agent",
+  "steps": [
+    {
+      "id": "chart_request",
+      "type": "manual_trigger",
+      "with": {
+        "chart_filename": "demo-chart.svg",
+        "labels": "Alpha, Beta, Gamma",
+        "values": "12, 28, 18"
+      }
+    },
+    {
+      "id": "render_chart",
+      "type": "ai_agent",
+      "needs": [
+        "chart_request"
+      ],
+      "with": {
+        "model": "gpt-4o-mini",
+        "max_iterations": 4,
+        "allowed_tools": [
+          "render_chart"
+        ],
+        "goal": "Create a bar chart SVG named demo-chart.svg using labels Alpha, Beta, Gamma\nand values 12, 28, 18. Finish with the saved filename.\n",
+        "context": "The render_chart tool expects filename, type, labels, values, and optional title.\n"
+      }
+    }
+  ]
+}

@@ -24,6 +24,6 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "yaml": "^2.8.1"
+    "@xyflow/svelte": "^1.6.2"
   }
 }

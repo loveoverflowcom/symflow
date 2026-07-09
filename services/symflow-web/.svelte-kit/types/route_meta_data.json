@@ -1,15 +1,37 @@
 {
 	"/": [
-		"src/routes/+page.ts"
+		"src/routes/+page.ts",
+		"src/routes/+layout.ts",
+		"src/routes/+layout.ts"
+	],
+	"/agents": [
+		"src/routes/+layout.ts"
+	],
+	"/connectors": [
+		"src/routes/+layout.ts"
 	],
 	"/flows": [
-		"src/routes/flows/+page.ts"
+		"src/routes/flows/+page.ts",
+		"src/routes/+layout.ts"
 	],
-	"/flows/new": [],
+	"/flows/new": [
+		"src/routes/+layout.ts"
+	],
 	"/flows/[id]": [
-		"src/routes/flows/[id]/+page.ts"
+		"src/routes/flows/[id]/+page.ts",
+		"src/routes/+layout.ts"
+	],
+	"/login": [
+		"src/routes/+layout.ts"
+	],
+	"/register": [
+		"src/routes/+layout.ts"
 	],
 	"/runs/[id]": [
-		"src/routes/runs/[id]/+page.ts"
+		"src/routes/runs/[id]/+page.ts",
+		"src/routes/+layout.ts"
+	],
+	"/skills": [
+		"src/routes/+layout.ts"
 	]
 }

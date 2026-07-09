@@ -1,0 +1,25 @@
+{
+  "flow_id": "local-file-reader",
+  "name": "Local File Reader",
+  "steps": [
+    {
+      "id": "read_note",
+      "type": "local_file_reader",
+      "with": {
+        "path": "sample-note.txt"
+      }
+    },
+    {
+      "id": "echo_file_metadata",
+      "type": "manual_trigger",
+      "needs": [
+        "read_note"
+      ],
+      "with": {
+        "file_path": "{{steps.read_note.path}}",
+        "file_size": "{{steps.read_note.size}}",
+        "content_preview": "{{steps.read_note.content}}"
+      }
+    }
+  ]
+}

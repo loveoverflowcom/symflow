@@ -2683,6 +2683,25 @@ function untrack(fn) {
 	}
 }
 //#endregion
+//#region node_modules/svelte/src/store/utils.js
+/** @import { Readable } from './public' */
+/**
+* @template T
+* @param {Readable<T> | null | undefined} store
+* @param {(value: T) => void} run
+* @param {(value: T) => void} [invalidate]
+* @returns {() => void}
+*/
+function subscribe_to_store(store, run, invalidate) {
+	if (store == null) {
+		run(void 0);
+		if (invalidate) invalidate(void 0);
+		return noop;
+	}
+	const unsub = untrack(() => store.subscribe(run, invalidate));
+	return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
+}
+//#endregion
 //#region node_modules/svelte/src/store/shared/index.js
 /** @import { Readable, StartStopNotifier, Subscriber, Unsubscriber, Updater, Writable } from '../public.js' */
 /** @import { Stores, StoresValues, SubscribeInvalidateTuple } from '../private.js' */
@@ -4047,31 +4066,31 @@ function attr_class(value, hash, directives) {
 	return result ? ` class="${escape_html(result, true)}"` : "";
 }
 /**
-* @param {Renderer} renderer
-* @param {Record<string, any>} $$props
-* @param {string} name
-* @param {Record<string, unknown>} slot_props
-* @param {null | (() => void)} fallback_fn
-* @returns {void}
+* @template V
+* @param {Record<string, [any, any, any]>} store_values
+* @param {string} store_name
+* @param {Store<V> | null | undefined} store
+* @returns {V}
 */
-function slot(renderer, $$props, name, slot_props, fallback_fn) {
-	var slot_fn = $$props.$$slots?.[name];
-	if (slot_fn === true) slot_fn = $$props[name === "default" ? "children" : name];
-	if (slot_fn !== void 0) slot_fn(renderer, slot_props);
-	else fallback_fn?.();
+function store_get(store_values, store_name, store) {
+	if (store_name in store_values && store_values[store_name][0] === store) return store_values[store_name][2];
+	store_values[store_name]?.[1]();
+	store_values[store_name] = [
+		store,
+		null,
+		void 0
+	];
+	const unsub = subscribe_to_store(
+		store,
+		/** @param {any} v */
+		(v) => store_values[store_name][2] = v
+	);
+	store_values[store_name][1] = unsub;
+	return store_values[store_name][2];
 }
-/**
-* Legacy mode: If the prop has a fallback and is bound in the
-* parent component, propagate the fallback value upwards.
-* @param {Record<string, unknown>} props_parent
-* @param {Record<string, unknown>} props_now
-*/
-function bind_props(props_parent, props_now) {
-	for (const key of Object.keys(props_now)) {
-		const initial_value = props_parent[key];
-		const value = props_now[key];
-		if (initial_value === void 0 && value !== void 0 && Object.getOwnPropertyDescriptor(props_parent, key)?.set) props_parent[key] = value;
-	}
+/** @param {Record<string, [any, any, any]>} store_values */
+function unsubscribe_stores(store_values) {
+	for (const store_name of Object.keys(store_values)) store_values[store_name][1]();
 }
 /** @param {any} array_like_or_iterator */
 function ensure_array_like(array_like_or_iterator) {
@@ -4105,4 +4124,4 @@ function derived(fn) {
 	};
 }
 //#endregion
-export { experimental_async_required as $, component_root as A, component_context as B, readable as C, get as D, active_reaction as E, init_operations as F, hydrating as G, push$1 as H, mutable_source as I, hydration_mismatch as J, set_hydrate_node as K, set as L, create_text as M, get_first_child as N, set_active_effect as O, get_next_sibling as P, hydration_failed as Q, flushSync as R, is_passive_event as S, active_effect as T, async_mode_flag as U, pop$1 as V, hydrate_node as W, state_proxy_unmount as X, lifecycle_double_unmount as Y, HYDRATION_ERROR as Z, hydratable_serialization_failed as _, head as a, run as at, attr as b, get_user_code_location as c, getAllContexts as d, LEGACY_PROPS as et, getContext as f, hydratable_clobbering as g, ssr_context as h, ensure_array_like as i, noop as it, clear_text_content as j, set_active_reaction as k, get_render_context as l, setContext as m, bind_props as n, array_from as nt, render as o, hasContext as p, set_hydrating as q, derived as r, define_property as rt, slot as s, attr_class as t, STATE_SYMBOL as tt, createContext as u, lifecycle_function_unavailable as v, writable as w, escape_html as x, getAbortSignal as y, boundary as z };
+export { experimental_async_required as $, component_root as A, component_context as B, readable as C, get as D, active_reaction as E, init_operations as F, hydrating as G, push$1 as H, mutable_source as I, hydration_mismatch as J, set_hydrate_node as K, set as L, create_text as M, get_first_child as N, set_active_effect as O, get_next_sibling as P, hydration_failed as Q, flushSync as R, is_passive_event as S, active_effect as T, async_mode_flag as U, pop$1 as V, hydrate_node as W, state_proxy_unmount as X, lifecycle_double_unmount as Y, HYDRATION_ERROR as Z, hydratable_serialization_failed as _, render as a, run as at, attr as b, get_user_code_location as c, getAllContexts as d, LEGACY_PROPS as et, getContext as f, hydratable_clobbering as g, ssr_context as h, head as i, noop as it, clear_text_content as j, set_active_reaction as k, get_render_context as l, setContext as m, derived as n, array_from as nt, store_get as o, hasContext as p, set_hydrating as q, ensure_array_like as r, define_property as rt, unsubscribe_stores as s, attr_class as t, STATE_SYMBOL as tt, createContext as u, lifecycle_function_unavailable as v, writable as w, escape_html as x, getAbortSignal as y, boundary as z };

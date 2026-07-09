@@ -1,0 +1,214 @@
+# Run from this directory:
+#   cd services/symflow-api
+#   cargo install --force cargo-make
+#   cargo make api-dev
+#
+# Useful tasks:
+#   cargo make api-dev              # Start Postgres with Compose, then run API locally with cargo.
+#   cargo make api-memory           # Run API locally with MemoryStore, no Postgres.
+#   cargo make postgres             # Start only the local Postgres dependency.
+#   cargo make postgres-down        # Stop the local Compose stack.
+#   cargo make api-container-up     # Build and run the API container profile.
+#
+# Compose runner:
+#   The tasks auto-detect docker compose, podman-compose, or podman compose.
+
+[config]
+default_to_workspace = false
+
+[tasks.postgres]
+description = "Start the local Postgres dependency for symflow-api."
+cwd = "container"
+script = '''
+set -eu
+
+compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose "$@"
+  elif command -v podman-compose >/dev/null 2>&1; then
+    podman-compose "$@"
+  elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+    podman compose "$@"
+  else
+    echo "Could not find docker compose, podman-compose, or podman compose." >&2
+    exit 127
+  fi
+}
+
+compose up -d postgres
+'''
+
+[tasks.postgres-wait]
+description = "Wait until the local Postgres container is ready."
+cwd = "container"
+script = '''
+set -eu
+
+compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose "$@"
+  elif command -v podman-compose >/dev/null 2>&1; then
+    podman-compose "$@"
+  elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+    podman compose "$@"
+  else
+    echo "Could not find docker compose, podman-compose, or podman compose." >&2
+    exit 127
+  fi
+}
+
+until compose exec -T postgres pg_isready -U "${POSTGRES_USER:-symflow}" -d "${POSTGRES_DB:-symflow}"; do
+  sleep 1
+done
+'''
+
+[tasks.postgres-logs]
+description = "Follow logs for the local Postgres container."
+cwd = "container"
+script = '''
+set -eu
+
+compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose "$@"
+  elif command -v podman-compose >/dev/null 2>&1; then
+    podman-compose "$@"
+  elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+    podman compose "$@"
+  else
+    echo "Could not find docker compose, podman-compose, or podman compose." >&2
+    exit 127
+  fi
+}
+
+compose logs -f postgres
+'''
+
+[tasks.postgres-down]
+description = "Stop the local Postgres dependency."
+cwd = "container"
+script = '''
+set -eu
+
+compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose "$@"
+  elif command -v podman-compose >/dev/null 2>&1; then
+    podman-compose "$@"
+  elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+    podman compose "$@"
+  else
+    echo "Could not find docker compose, podman-compose, or podman compose." >&2
+    exit 127
+  fi
+}
+
+compose down
+'''
+
+[tasks.api-dev]
+description = "Start Postgres, then run symflow-api locally with cargo."
+dependencies = ["postgres", "postgres-wait"]
+script = '''
+set -eu
+
+DATABASE_URL="${SYMFLOW_API_DEV_DATABASE_URL:-postgres://${POSTGRES_USER:-symflow}:${POSTGRES_PASSWORD:-symflow}@127.0.0.1:${POSTGRES_PORT:-5432}/${POSTGRES_DB:-symflow}?sslmode=disable}"
+SYMFLOW_API_ADDR="${SYMFLOW_API_DEV_ADDR:-127.0.0.1:8787}"
+RUST_LOG="${RUST_LOG:-info}"
+
+export DATABASE_URL
+export SYMFLOW_API_ADDR
+export RUST_LOG
+
+cargo run --bin symflow-api
+'''
+
+[tasks.api-memory]
+description = "Run symflow-api locally without DATABASE_URL, using the in-memory store."
+script = '''
+set -eu
+
+unset DATABASE_URL
+SYMFLOW_AUTH_DISABLED=1
+SYMFLOW_API_ADDR="${SYMFLOW_API_DEV_ADDR:-127.0.0.1:8787}"
+RUST_LOG="${RUST_LOG:-info}"
+
+export SYMFLOW_API_ADDR
+export SYMFLOW_AUTH_DISABLED
+export RUST_LOG
+
+cargo run --bin symflow-api
+'''
+
+[tasks.api-build]
+description = "Build the symflow-api binary in debug mode."
+command = "cargo"
+args = ["build", "--bin", "symflow-api"]
+
+[tasks.api-build-release]
+description = "Build the symflow-api binary in release mode."
+command = "cargo"
+args = ["build", "--release", "--locked", "--bin", "symflow-api"]
+
+[tasks.api-container-build]
+description = "Build the symflow-api container image."
+cwd = "../.."
+script = '''
+set -eu
+
+if command -v docker >/dev/null 2>&1; then
+  docker build -f services/symflow-api/container/Containerfile -t symflow-api:local .
+elif command -v podman >/dev/null 2>&1; then
+  podman build -f services/symflow-api/container/Containerfile -t symflow-api:local .
+else
+  echo "Could not find docker or podman." >&2
+  exit 127
+fi
+'''
+
+[tasks.api-container-up]
+description = "Run Postgres and the symflow-api container."
+cwd = "container"
+script = '''
+set -eu
+
+compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose "$@"
+  elif command -v podman-compose >/dev/null 2>&1; then
+    podman-compose "$@"
+  elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+    podman compose "$@"
+  else
+    echo "Could not find docker compose, podman-compose, or podman compose." >&2
+    exit 127
+  fi
+}
+
+compose --profile container up -d --build
+'''
+
+[tasks.api-container-down]
+description = "Stop the symflow-api container stack."
+cwd = "container"
+script = '''
+set -eu
+
+compose() {
+  if command -v docker >/dev/null 2>&1 && docker compose version >/dev/null 2>&1; then
+    docker compose "$@"
+  elif command -v podman-compose >/dev/null 2>&1; then
+    podman-compose "$@"
+  elif command -v podman >/dev/null 2>&1 && podman compose version >/dev/null 2>&1; then
+    podman compose "$@"
+  else
+    echo "Could not find docker compose, podman-compose, or podman compose." >&2
+    exit 127
+  fi
+}
+
+compose --profile container down
+'''
+
+[tasks.api]
+alias = "api-dev"

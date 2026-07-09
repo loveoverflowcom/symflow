@@ -1,0 +1,2 @@
+This file is a sandbox fixture for the local-file-reader flow.
+Use SANDBOX_DIR=../../test-data/sandbox when running symflow-api from services/symflow-api.

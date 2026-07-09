@@ -1,4 +1,6 @@
 import type { AgentLogEvent, FlowDetail, FlowRun, FlowSummary, FlowUpsertPayload, StepExecution } from '$lib/types/symflow';
+import type { AuthUser, LoginPayload, RegisterPayload } from '$lib/auth/types';
+import { formatJsonDsl } from '$lib/utils/dsl';
 import { slugFromName } from '$lib/utils/format';
 
 const now = () => new Date().toISOString();
@@ -10,19 +12,36 @@ const flows = new Map<string, FlowDetail>([
       id: 'demo-flow',
       name: 'demo-flow',
       created_at: now(),
-      dsl_script: `name: demo-flow
-steps:
-  - id: read_manual_trigger
-    kind: manual_trigger
-  - id: scrape_page
-    kind: web_scraper
-    inputs:
-      url: "https://example.com"`
+      dsl_script: JSON.stringify(
+        {
+          flow_id: 'demo-flow',
+          name: 'Demo flow',
+          steps: [
+            {
+              id: 'read_manual_trigger',
+              type: 'manual_trigger',
+              with: { message: 'Demo input' }
+            },
+            {
+              id: 'scrape_page',
+              type: 'web_scraper',
+              needs: ['read_manual_trigger'],
+              with: { url: 'https://example.com' }
+            }
+          ]
+        },
+        null,
+        2
+      )
     }
   ]
 ]);
 
 const runs = new Map<string, FlowRun>();
+let currentUser: AuthUser | null = {
+  id: '00000000-0000-0000-0000-000000000001',
+  username: 'mock-user'
+};
 
 const delay = (ms = 180) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -110,7 +129,7 @@ export async function saveFlowMock(payload: FlowUpsertPayload): Promise<FlowDeta
   const saved: FlowDetail = {
     id,
     name: payload.name,
-    dsl_script: payload.dsl_script,
+    dsl_script: formatJsonDsl(payload.dsl_script),
     created_at: existing?.created_at ?? now()
   };
   flows.set(id, saved);
@@ -174,3 +193,40 @@ export function getRunLogsWebSocketUrl(_runId: string): string {
 export function parseLogMessage(data: string): AgentLogEvent {
   return JSON.parse(data) as AgentLogEvent;
 }
+
+export async function registerUserMock(payload: RegisterPayload): Promise<AuthUser> {
+  await delay();
+  currentUser = {
+    id: `mock-user-${Math.random().toString(36).slice(2, 10)}`,
+    username: payload.username.toLowerCase()
+  };
+  return currentUser;
+}
+
+export const registerUser = registerUserMock;
+
+export async function loginUserMock(payload: LoginPayload): Promise<AuthUser> {
+  await delay();
+  currentUser = {
+    id: currentUser?.id ?? '00000000-0000-0000-0000-000000000001',
+    username: payload.username.toLowerCase()
+  };
+  return currentUser;
+}
+
+export const loginUser = loginUserMock;
+
+export async function logoutUserMock(): Promise<void> {
+  await delay();
+  currentUser = null;
+}
+
+export const logoutUser = logoutUserMock;
+
+export async function getMeMock(): Promise<AuthUser> {
+  await delay(20);
+  if (!currentUser) throw new Error('not authenticated');
+  return currentUser;
+}
+
+export const getMe = getMeMock;

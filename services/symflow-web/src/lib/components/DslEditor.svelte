@@ -1,5 +1,6 @@
 <script lang="ts">
-  import YAML from 'yaml';
+  import { language, t } from '$lib/i18n';
+  import { DEFAULT_FLOW_DSL, formatJsonDsl, parseJsonDsl } from '$lib/utils/dsl';
 
   let {
     value = $bindable(''),
@@ -13,27 +14,43 @@
 
   function validateDsl() {
     try {
-      YAML.parse(value || '');
-      validationMessage = 'DSL is valid YAML.';
+      parseJsonDsl(value || '');
+      validationMessage = t($language, 'validJson');
     } catch (error) {
-      validationMessage = error instanceof Error ? error.message : 'Invalid YAML';
+      const detail = error instanceof Error ? `: ${error.message}` : '';
+      validationMessage = `${t($language, 'invalidJson')}${detail}`;
+    }
+  }
+
+  function formatDsl() {
+    try {
+      value = formatJsonDsl(value);
+      validationMessage = t($language, 'validJson');
+    } catch (error) {
+      const detail = error instanceof Error ? `: ${error.message}` : '';
+      validationMessage = `${t($language, 'invalidJson')}${detail}`;
     }
   }
 </script>
 
 <div class="stack">
   <div class="editor-toolbar">
-    <span class="muted">YAML DSL</span>
-    <button class="secondary-button" type="button" onclick={validateDsl} disabled={disabled}>
-      Validate
-    </button>
+    <span class="muted">{t($language, 'jsonDsl')}</span>
+    <div class="button-row">
+      <button class="secondary-button" type="button" onclick={formatDsl} disabled={disabled}>
+        {t($language, 'formatJson')}
+      </button>
+      <button class="secondary-button" type="button" onclick={validateDsl} disabled={disabled}>
+        {t($language, 'validate')}
+      </button>
+    </div>
   </div>
 
   <textarea
     bind:value
     class="dsl-editor"
     disabled={disabled}
-    placeholder="name: demo-flow&#10;steps:&#10;  - id: read_file&#10;    kind: local_file_reader"
+    placeholder={DEFAULT_FLOW_DSL}
     spellcheck="false"
   ></textarea>
 

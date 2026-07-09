@@ -10,9 +10,10 @@ use serde_json::Value;
 use symflow_core::events::RunEvent;
 use uuid::Uuid;
 
-use crate::{app::AppState, error::ApiError};
+use crate::{app::AppState, auth::extractor::AuthUser, error::ApiError};
 
 pub async fn run_logs_ws(
+    _auth: AuthUser,
     ws: WebSocketUpgrade,
     Path(run_id): Path<Uuid>,
     State(state): State<AppState>,
@@ -68,8 +69,8 @@ where
     S: Sink<Message> + Unpin,
     <S as Sink<Message>>::Error: std::fmt::Display,
 {
-    let payload = serde_json::to_string(event)
-        .map_err(|err| ApiError::internal(err.to_string()))?;
+    let payload =
+        serde_json::to_string(event).map_err(|err| ApiError::internal(err.to_string()))?;
     socket
         .send(Message::Text(payload.into()))
         .await

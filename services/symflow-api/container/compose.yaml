@@ -1,0 +1,49 @@
+name: symflow-api
+
+services:
+  postgres:
+    image: docker.io/postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-symflow}
+      POSTGRES_USER: ${POSTGRES_USER:-symflow}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-symflow}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+  symflow-api:
+    profiles:
+      - container
+    image: symflow-api:local
+    build:
+      context: ../../..
+      dockerfile: services/symflow-api/container/Containerfile
+    environment:
+      DATABASE_URL: ${DATABASE_URL:-postgres://${POSTGRES_USER:-symflow}:${POSTGRES_PASSWORD:-symflow}@postgres:5432/${POSTGRES_DB:-symflow}?sslmode=disable}
+      SYMFLOW_API_ADDR: ${SYMFLOW_API_ADDR:-0.0.0.0:8787}
+      RUST_LOG: ${RUST_LOG:-info}
+      SYMFLOW_WEB_ORIGIN: ${SYMFLOW_WEB_ORIGIN:-http://localhost:5173}
+      SYMFLOW_SESSION_COOKIE: ${SYMFLOW_SESSION_COOKIE:-symflow_session}
+      SYMFLOW_SESSION_TTL_SECS: ${SYMFLOW_SESSION_TTL_SECS:-1209600}
+      SYMFLOW_COOKIE_SECURE: ${SYMFLOW_COOKIE_SECURE:-false}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://router.huggingface.co/v1}
+      LLM_MODEL: ${LLM_MODEL:-Qwen/Qwen3-1.7B:featherless-ai}
+      LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-100}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.7}
+    ports:
+      - "${SYMFLOW_API_PORT:-8787}:8787"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

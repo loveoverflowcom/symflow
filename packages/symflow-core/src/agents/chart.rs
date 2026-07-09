@@ -7,17 +7,29 @@ use serde_json::{json, Value};
 
 pub struct ChartAgent;
 impl Agent for ChartAgent {
-    fn id(&self) -> &str { "chart" }
-    fn name(&self) -> &str { "Chart Agent" }
-    fn description(&self) -> &str { "Tạo biểu đồ SVG (bar, line, pie) từ dữ liệu." }
-    fn tools(&self) -> Vec<Box<dyn Tool>> { vec![Box::new(RenderChart)] }
+    fn id(&self) -> &str {
+        "chart"
+    }
+    fn name(&self) -> &str {
+        "Chart Agent"
+    }
+    fn description(&self) -> &str {
+        "Tạo biểu đồ SVG (bar, line, pie) từ dữ liệu."
+    }
+    fn tools(&self) -> Vec<Box<dyn Tool>> {
+        vec![Box::new(RenderChart)]
+    }
 }
 
 pub struct RenderChart;
 #[async_trait]
 impl Tool for RenderChart {
-    fn name(&self) -> &str { "render_chart" }
-    fn description(&self) -> &str { "Tạo biểu đồ SVG và lưu vào sandbox." }
+    fn name(&self) -> &str {
+        "render_chart"
+    }
+    fn description(&self) -> &str {
+        "Tạo biểu đồ SVG và lưu vào sandbox."
+    }
     fn input_schema(&self) -> Value {
         json!({
             "type": "object",
@@ -32,26 +44,41 @@ impl Tool for RenderChart {
         })
     }
     async fn call(&self, args: Value, ctx: &ToolContext) -> Result<ToolOutput, ToolError> {
-        let filename   = args["filename"].as_str().ok_or_else(|| ToolError::InvalidArgs("thiếu 'filename'".into()))?;
+        let filename = args["filename"]
+            .as_str()
+            .ok_or_else(|| ToolError::InvalidArgs("thiếu 'filename'".into()))?;
         let chart_type = args["type"].as_str().unwrap_or("bar");
-        let title      = args["title"].as_str().unwrap_or("Chart");
-        let labels: Vec<&str> = args["labels"].as_array()
+        let title = args["title"].as_str().unwrap_or("Chart");
+        let labels: Vec<&str> = args["labels"]
+            .as_array()
             .ok_or_else(|| ToolError::InvalidArgs("thiếu 'labels'".into()))?
-            .iter().filter_map(|v| v.as_str()).collect();
-        let values: Vec<f64> = args["values"].as_array()
+            .iter()
+            .filter_map(|v| v.as_str())
+            .collect();
+        let values: Vec<f64> = args["values"]
+            .as_array()
             .ok_or_else(|| ToolError::InvalidArgs("thiếu 'values'".into()))?
-            .iter().filter_map(|v| v.as_f64()).collect();
+            .iter()
+            .filter_map(|v| v.as_f64())
+            .collect();
         if labels.len() != values.len() {
-            return Err(ToolError::InvalidArgs("labels và values phải cùng độ dài".into()));
+            return Err(ToolError::InvalidArgs(
+                "labels và values phải cùng độ dài".into(),
+            ));
         }
         let svg = match chart_type {
             "line" => render_line(&labels, &values, title),
-            "pie"  => render_pie(&labels, &values, title),
-            _      => render_bar(&labels, &values, title),
+            "pie" => render_pie(&labels, &values, title),
+            _ => render_bar(&labels, &values, title),
         };
         let path = crate::sandbox::safe_path(&ctx.sandbox_dir, filename)?;
-        tokio::fs::write(&path, &svg).await.map_err(|e| ToolError::Io(e.to_string()))?;
-        Ok(ToolOutput::text(format!("Đã tạo biểu đồ '{filename}' ({chart_type}, {} điểm).", values.len())))
+        tokio::fs::write(&path, &svg)
+            .await
+            .map_err(|e| ToolError::Io(e.to_string()))?;
+        Ok(ToolOutput::text(format!(
+            "Đã tạo biểu đồ '{filename}' ({chart_type}, {} điểm).",
+            values.len()
+        )))
     }
 }
 
@@ -60,7 +87,7 @@ fn render_bar(labels: &[&str], values: &[f64], title: &str) -> String {
     let max = values.iter().cloned().fold(0.0_f64, f64::max).max(1.0);
     let bar_w = (w - 80.0) / labels.len() as f64;
     let chart_h = h - 80.0;
-    let color_bar  = "#6366f1";
+    let color_bar = "#6366f1";
     let color_text = "#374151";
     let color_title = "#111827";
     let bars: String = labels.iter().zip(values.iter()).enumerate().map(|(i, (lbl, &val))| {
@@ -86,11 +113,20 @@ fn render_line(labels: &[&str], values: &[f64], title: &str) -> String {
     let max = values.iter().cloned().fold(0.0_f64, f64::max).max(1.0);
     let chart_h = h - 80.0;
     let step = (w - 80.0) / (labels.len().saturating_sub(1).max(1)) as f64;
-    let color_title  = "#111827";
+    let color_title = "#111827";
     let color_stroke = "#6366f1";
-    let pts: String = values.iter().enumerate().map(|(i, &v)| {
-        format!("{:.0},{:.0}", 40.0 + i as f64 * step, chart_h + 20.0 - (v / max) * chart_h)
-    }).collect::<Vec<_>>().join(" ");
+    let pts: String = values
+        .iter()
+        .enumerate()
+        .map(|(i, &v)| {
+            format!(
+                "{:.0},{:.0}",
+                40.0 + i as f64 * step,
+                chart_h + 20.0 - (v / max) * chart_h
+            )
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
     let cx = w / 2.0;
     let _ = labels; // labels not displayed in this simple version
     format!(
@@ -102,9 +138,11 @@ fn render_line(labels: &[&str], values: &[f64], title: &str) -> String {
 fn render_pie(labels: &[&str], values: &[f64], title: &str) -> String {
     let (w, h, cx, cy, r) = (500f64, 420f64, 200f64, 210f64, 150f64);
     let total = values.iter().sum::<f64>().max(1.0);
-    let colors = ["#6366f1","#f59e0b","#10b981","#ef4444","#8b5cf6","#06b6d4"];
+    let colors = [
+        "#6366f1", "#f59e0b", "#10b981", "#ef4444", "#8b5cf6", "#06b6d4",
+    ];
     let color_title = "#111827";
-    let color_lbl   = "#374151";
+    let color_lbl = "#374151";
     let mut slices = String::new();
     let mut angle = -std::f64::consts::FRAC_PI_2;
     for (i, (&lbl, &val)) in labels.iter().zip(values.iter()).enumerate() {
