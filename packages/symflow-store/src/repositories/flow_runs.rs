@@ -42,16 +42,39 @@ pub async fn set_run_status(
     Ok(())
 }
 
+pub async fn save_run_result(
+    pool: &PgPool,
+    run_id: Uuid,
+    status: RunStatus,
+    output: Option<Value>,
+    execution_logs: Value,
+    error: Option<String>,
+) -> Result<(), StoreError> {
+    sqlx::query(
+        "UPDATE flow_runs SET status = $1, output = $2, execution_logs = $3, error = $4, \
+         finished_at = now() WHERE id = $5",
+    )
+    .bind(status.as_db_str())
+    .bind(output)
+    .bind(execution_logs)
+    .bind(error)
+    .bind(run_id)
+    .execute(pool)
+    .await
+    .map_err(backend_err)?;
+    Ok(())
+}
+
 pub async fn get_run(pool: &PgPool, run_id: Uuid) -> Result<Option<RunRecord>, StoreError> {
     let row = sqlx::query_as::<_, FlowRunRow>(
-        "SELECT id, flow_id, status, initial_inputs, created_at, finished_at FROM flow_runs WHERE id = $1",
+        "SELECT id, flow_id, status, initial_inputs, output, execution_logs, error, created_at, finished_at FROM flow_runs WHERE id = $1",
     ).bind(run_id).fetch_optional(pool).await.map_err(backend_err)?;
     Ok(row.map(FlowRunRow::into_record))
 }
 
 pub async fn list_runs(pool: &PgPool) -> Result<Vec<RunRecord>, StoreError> {
     let rows = sqlx::query_as::<_, FlowRunRow>(
-        "SELECT id, flow_id, status, initial_inputs, created_at, finished_at \
+        "SELECT id, flow_id, status, initial_inputs, output, execution_logs, error, created_at, finished_at \
          FROM flow_runs ORDER BY created_at DESC",
     )
     .fetch_all(pool)

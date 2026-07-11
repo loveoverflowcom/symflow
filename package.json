@@ -1,0 +1,8 @@
+{
+  "name": "symflow",
+  "private": true,
+  "workspaces": [
+    "packages/symflow-runtime",
+    "services/symflow-web"
+  ]
+}

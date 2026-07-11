@@ -3,7 +3,7 @@ pub mod core;
 pub mod pdf;
 pub mod scraper;
 
-use crate::protocol::{Agent, Registry};
+use crate::protocol::Registry;
 
 pub fn default_registry() -> Registry {
     let mut r = Registry::new();

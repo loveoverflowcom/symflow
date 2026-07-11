@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { getFlowMock, getRunMock, listFlowsMock, saveFlowMock, triggerRunMock } from '../src/lib/api/mock';
+import { getFlowMock, getRunMock, listFlowsMock, saveFlowMock, saveRunMock } from '../src/lib/api/mock';
 
 describe('mock api', () => {
   it('saves flows and makes them available to list/get calls', async () => {
-    const dsl = '{"flow_id":"test-flow","name":"Test flow","steps":[]}';
+    const dsl = 'export async function main() { return {}; }';
     const saved = await saveFlowMock({
       name: 'Test flow',
       dsl_script: dsl
@@ -16,19 +16,23 @@ describe('mock api', () => {
     expect(fetched).toMatchObject({
       id: saved.id,
       name: 'Test flow',
-      dsl_script: JSON.stringify(JSON.parse(dsl), null, 2)
+      dsl_script: dsl
     });
   });
 
   it('creates a run and resolves it on readback', async () => {
-    const run = await triggerRunMock('demo-flow');
+    const run = await saveRunMock({
+      flow_id: 'demo-flow',
+      initial_input: {},
+      status: 'SUCCESS',
+      output: { ok: true },
+      logs: []
+    });
 
-    expect(run.status).toBe('RUNNING');
-    expect(run.steps).toHaveLength(2);
+    expect(run.status).toBe('SUCCESS');
 
     const resolved = await getRunMock(run.id);
     expect(resolved.status).toBe('SUCCESS');
-    expect(resolved.steps?.[1].status).toBe('COMPLETED');
-    expect(Array.isArray(resolved.steps?.[1].agent_logs)).toBe(true);
+    expect(resolved.output).toEqual({ ok: true });
   });
 });

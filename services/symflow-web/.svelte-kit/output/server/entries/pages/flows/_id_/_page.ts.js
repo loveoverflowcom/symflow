@@ -1,4 +1,4 @@
-import { t as getFlow } from "../../../../chunks/client.js";
+import { n as getFlow } from "../../../../chunks/client.js";
 import { t as toViewError } from "../../../../chunks/errors.js";
 //#region src/routes/flows/[id]/+page.ts
 async function load({ fetch, params }) {

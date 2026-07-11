@@ -1,4 +1,4 @@
-import { s as unsubscribe_stores } from "../../chunks/server.js";
+import { l as unsubscribe_stores } from "../../chunks/server.js";
 import "../../chunks/session.js";
 import "../../chunks/theme.js";
 //#region src/routes/+layout.svelte

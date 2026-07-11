@@ -38,6 +38,8 @@ services:
       LLM_MODEL: ${LLM_MODEL:-Qwen/Qwen3-1.7B:featherless-ai}
       LLM_MAX_TOKENS: ${LLM_MAX_TOKENS:-100}
       LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.7}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      GEMINI_VISION_ENDPOINT: ${GEMINI_VISION_ENDPOINT:-https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent}
     ports:
       - "${SYMFLOW_API_PORT:-8787}:8787"
     depends_on:

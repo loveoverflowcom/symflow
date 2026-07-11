@@ -1,6 +1,6 @@
 import * as devalue from "devalue";
 import { clsx } from "clsx";
-//#region node_modules/svelte/src/internal/shared/utils.js
+//#region ../../node_modules/svelte/src/internal/shared/utils.js
 var is_array = Array.isArray;
 var index_of = Array.prototype.indexOf;
 var includes = Array.prototype.includes;
@@ -40,7 +40,7 @@ function deferred() {
 	};
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/reactivity/equality.js
+//#region ../../node_modules/svelte/src/internal/client/reactivity/equality.js
 /** @import { Equals } from '#client' */
 /** @type {Equals} */
 function equals(value) {
@@ -96,7 +96,7 @@ var STALE_REACTION = new class StaleReactionError extends Error {
 }();
 globalThis.document?.contentType;
 //#endregion
-//#region node_modules/svelte/src/internal/shared/errors.js
+//#region ../../node_modules/svelte/src/internal/shared/errors.js
 /**
 * Cannot use `%name%(...)` unless the `experimental.async` compiler option is `true`
 * @param {string} name
@@ -163,7 +163,7 @@ function svelte_boundary_reset_onerror() {
 	throw new Error(`https://svelte.dev/e/svelte_boundary_reset_onerror`);
 }
 //#endregion
-//#region node_modules/svelte/src/constants.js
+//#region ../../node_modules/svelte/src/constants.js
 var HYDRATION_ERROR = {};
 var UNINITIALIZED = Symbol("uninitialized");
 /**
@@ -198,7 +198,7 @@ function svelte_boundary_reset_noop() {
 	console.warn(`https://svelte.dev/e/svelte_boundary_reset_noop`);
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/dom/hydration.js
+//#region ../../node_modules/svelte/src/internal/client/dom/hydration.js
 /** @import { TemplateNode } from '#client' */
 /**
 * Use this variable to guard everything related to hydration code so it can be treeshaken out
@@ -257,7 +257,7 @@ function skip_nodes(remove = true) {
 	}
 }
 //#endregion
-//#region node_modules/svelte/src/internal/flags/index.js
+//#region ../../node_modules/svelte/src/internal/flags/index.js
 /** True if experimental.async=true */
 var async_mode_flag = false;
 /** True if we're not certain that we only have Svelte 5 code in the compilation */
@@ -284,7 +284,7 @@ function get_stack() {
 	return new_lines;
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/context.js
+//#region ../../node_modules/svelte/src/internal/client/context.js
 /** @import { ComponentContext, DevStackEntry, Effect } from '#client' */
 /** @type {ComponentContext | null} */
 var component_context = null;
@@ -336,7 +336,7 @@ function is_runes() {
 	return !legacy_mode_flag || component_context !== null && component_context.l === null;
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/dom/task.js
+//#region ../../node_modules/svelte/src/internal/client/dom/task.js
 /** @type {Array<() => void>} */
 var micro_tasks = [];
 function run_micro_tasks() {
@@ -395,7 +395,7 @@ function invoke_error_boundary(error, effect) {
 	throw error;
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/reactivity/status.js
+//#region ../../node_modules/svelte/src/internal/client/reactivity/status.js
 /** @import { Derived, Signal } from '#client' */
 var STATUS_MASK = ~(DIRTY | MAYBE_DIRTY | CLEAN);
 /**
@@ -414,7 +414,7 @@ function update_derived_status(derived) {
 	else set_signal_status(derived, MAYBE_DIRTY);
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/reactivity/utils.js
+//#region ../../node_modules/svelte/src/internal/client/reactivity/utils.js
 /** @import { Derived, Effect, Value } from '#client' */
 /**
 * @param {Value[] | null} deps
@@ -442,14 +442,14 @@ function defer_effect(effect, dirty_effects, maybe_dirty_effects) {
 	set_signal_status(effect, CLEAN);
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/reactivity/store.js
+//#region ../../node_modules/svelte/src/internal/client/reactivity/store.js
 /**
 * We set this to `true` when updating a store so that we correctly
 * schedule effects if the update takes place inside a `$:` effect
 */
 var legacy_is_updating_store = false;
 //#endregion
-//#region node_modules/svelte/src/reactivity/create-subscriber.js
+//#region ../../node_modules/svelte/src/reactivity/create-subscriber.js
 /**
 * Returns a `subscribe` function that integrates external event-based systems with Svelte's reactivity.
 * It's particularly useful for integrating with web APIs like `MediaQuery`, `IntersectionObserver`, or `WebSocket`.
@@ -522,7 +522,7 @@ function createSubscriber(start) {
 	};
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/dom/blocks/boundary.js
+//#region ../../node_modules/svelte/src/internal/client/dom/blocks/boundary.js
 /** @import { Effect, Source, TemplateNode, } from '#client' */
 /**
 * @typedef {{
@@ -944,7 +944,7 @@ function unfreeze_derived_effects(derived) {
 	for (const e of derived.effects) if (e.teardown && e.fn !== null) update_effect(e);
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/reactivity/batch.js
+//#region ../../node_modules/svelte/src/internal/client/reactivity/batch.js
 /** @import { Fork } from 'svelte' */
 /** @import { Derived, Effect, Reaction, Source, Value } from '#client' */
 /** @type {Batch | null} */
@@ -1676,7 +1676,7 @@ function reset_all(effect) {
 	}
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/reactivity/sources.js
+//#region ../../node_modules/svelte/src/internal/client/reactivity/sources.js
 /** @import { Derived, Effect, Source, Value } from '#client' */
 /** @type {Set<Effect>} */
 var eager_effects = /* @__PURE__ */ new Set();
@@ -1972,7 +1972,7 @@ function proxy(value) {
 	});
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/dom/operations.js
+//#region ../../node_modules/svelte/src/internal/client/dom/operations.js
 /** @type {Window} */
 var $window;
 /** @type {() => Node | null} */
@@ -2033,7 +2033,7 @@ function clear_text_content(node) {
 	node.textContent = "";
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/dom/elements/bindings/shared.js
+//#region ../../node_modules/svelte/src/internal/client/dom/elements/bindings/shared.js
 /**
 * @template T
 * @param {() => T} fn
@@ -2051,7 +2051,7 @@ function without_reactive_context(fn) {
 	}
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/reactivity/effects.js
+//#region ../../node_modules/svelte/src/internal/client/reactivity/effects.js
 /** @import { Blocker, ComponentContext, ComponentContextLegacy, Derived, Effect, TemplateNode, TransitionManager } from '#client' */
 /**
 * @param {Effect} effect
@@ -2336,14 +2336,14 @@ function move_effect(effect, fragment) {
 	}
 }
 //#endregion
-//#region node_modules/svelte/src/internal/client/legacy.js
+//#region ../../node_modules/svelte/src/internal/client/legacy.js
 /**
 * @type {Set<Value> | null}
 * @deprecated
 */
 var captured_signals = null;
 //#endregion
-//#region node_modules/svelte/src/internal/client/runtime.js
+//#region ../../node_modules/svelte/src/internal/client/runtime.js
 /** @import { Derived, Effect, Reaction, Source, Value } from '#client' */
 var is_updating_effect = false;
 var is_destroying_effect = false;
@@ -2683,7 +2683,7 @@ function untrack(fn) {
 	}
 }
 //#endregion
-//#region node_modules/svelte/src/store/utils.js
+//#region ../../node_modules/svelte/src/store/utils.js
 /** @import { Readable } from './public' */
 /**
 * @template T
@@ -2702,7 +2702,7 @@ function subscribe_to_store(store, run, invalidate) {
 	return unsub.unsubscribe ? () => unsub.unsubscribe() : unsub;
 }
 //#endregion
-//#region node_modules/svelte/src/store/shared/index.js
+//#region ../../node_modules/svelte/src/store/shared/index.js
 /** @import { Readable, StartStopNotifier, Subscriber, Unsubscriber, Updater, Writable } from '../public.js' */
 /** @import { Stores, StoresValues, SubscribeInvalidateTuple } from '../private.js' */
 /**
@@ -2786,7 +2786,7 @@ function writable(value, start = noop) {
 	};
 }
 //#endregion
-//#region node_modules/svelte/src/utils.js
+//#region ../../node_modules/svelte/src/utils.js
 /**
 * Attributes that are boolean, i.e. they are present or not present.
 */
@@ -2846,7 +2846,7 @@ function is_passive_event(name) {
 	return PASSIVE_EVENTS.includes(name);
 }
 //#endregion
-//#region node_modules/svelte/src/escaping.js
+//#region ../../node_modules/svelte/src/escaping.js
 var ATTR_REGEX = /[&"<]/g;
 var CONTENT_REGEX = /[&<]/g;
 /**
@@ -2869,7 +2869,7 @@ function escape_html(value, is_attr) {
 	return escaped + str.substring(last);
 }
 //#endregion
-//#region node_modules/svelte/src/internal/shared/attributes.js
+//#region ../../node_modules/svelte/src/internal/shared/attributes.js
 /**
 * `<div translate={false}>` should be rendered as `<div translate="no">` and _not_
 * `<div translate="false">`, which is equivalent to `<div translate="yes">`. There
@@ -3008,12 +3008,12 @@ function to_style(value, styles) {
 	return value == null ? null : String(value);
 }
 //#endregion
-//#region node_modules/svelte/src/internal/server/hydration.js
+//#region ../../node_modules/svelte/src/internal/server/hydration.js
 var BLOCK_OPEN = `<!--[-->`;
 var BLOCK_CLOSE = `<!--]-->`;
 var EMPTY_COMMENT = `<!---->`;
 //#endregion
-//#region node_modules/svelte/src/internal/server/abort-signal.js
+//#region ../../node_modules/svelte/src/internal/server/abort-signal.js
 /** @type {AbortController | null} */
 var controller = null;
 function abort() {
@@ -3024,7 +3024,7 @@ function getAbortSignal() {
 	return (controller ??= new AbortController()).signal;
 }
 //#endregion
-//#region node_modules/svelte/src/internal/server/errors.js
+//#region ../../node_modules/svelte/src/internal/server/errors.js
 /**
 * The node API `AsyncLocalStorage` is not available, but is required to use async server rendering.
 * @returns {never}
@@ -3126,7 +3126,7 @@ function server_context_required() {
 	throw error;
 }
 //#endregion
-//#region node_modules/svelte/src/internal/server/context.js
+//#region ../../node_modules/svelte/src/internal/server/context.js
 /** @import { SSRContext } from '#server' */
 /** @type {SSRContext | null} */
 var ssr_context = null;
@@ -3221,7 +3221,7 @@ function unresolved_hydratable(key, stack) {
 	console.warn(`https://svelte.dev/e/unresolved_hydratable`);
 }
 //#endregion
-//#region node_modules/svelte/src/internal/server/render-context.js
+//#region ../../node_modules/svelte/src/internal/server/render-context.js
 /** @import { AsyncLocalStorage } from 'node:async_hooks' */
 /** @import { RenderContext } from '#server' */
 /** @type {Promise<void> | null} */
@@ -3277,7 +3277,7 @@ function in_webcontainer() {
 	return !!globalThis.process?.versions?.webcontainer;
 }
 //#endregion
-//#region node_modules/svelte/src/internal/server/crypto.js
+//#region ../../node_modules/svelte/src/internal/server/crypto.js
 var text_encoder;
 var crypto;
 /** @param {string} module_name */
@@ -3302,7 +3302,7 @@ function base64_encode(bytes) {
 	return btoa(binary);
 }
 //#endregion
-//#region node_modules/svelte/src/internal/server/renderer.js
+//#region ../../node_modules/svelte/src/internal/server/renderer.js
 /** @import { Component } from 'svelte' */
 /** @import { Csp, HydratableContext, RenderOutput, SSRContext, SyncRenderOutput, Sha256Source } from './types.js' */
 /** @import { MaybePromise } from '#shared' */
@@ -3989,12 +3989,12 @@ var SSRState = class {
 	}
 };
 //#endregion
-//#region node_modules/svelte/src/internal/server/dev.js
+//#region ../../node_modules/svelte/src/internal/server/dev.js
 function get_user_code_location() {
 	return get_stack().filter((line) => line.trim().startsWith("at ")).map((line) => line.replace(/\((.*):\d+:\d+\)$/, (_, file) => `(${file})`)).join("\n");
 }
 //#endregion
-//#region node_modules/svelte/src/internal/server/index.js
+//#region ../../node_modules/svelte/src/internal/server/index.js
 var INVALID_ATTR_NAME_CHAR_REGEX = /[\s'">/=\u{FDD0}-\u{FDEF}\u{FFFE}\u{FFFF}\u{1FFFE}\u{1FFFF}\u{2FFFE}\u{2FFFF}\u{3FFFE}\u{3FFFF}\u{4FFFE}\u{4FFFF}\u{5FFFE}\u{5FFFF}\u{6FFFE}\u{6FFFF}\u{7FFFE}\u{7FFFF}\u{8FFFE}\u{8FFFF}\u{9FFFE}\u{9FFFF}\u{AFFFE}\u{AFFFF}\u{BFFFE}\u{BFFFF}\u{CFFFE}\u{CFFFF}\u{DFFFE}\u{DFFFF}\u{EFFFE}\u{EFFFF}\u{FFFFE}\u{FFFFF}\u{10FFFE}\u{10FFFF}]/u;
 /**
 * Only available on the server and when compiling with the `server` option.
@@ -4066,6 +4066,14 @@ function attr_class(value, hash, directives) {
 	return result ? ` class="${escape_html(result, true)}"` : "";
 }
 /**
+* @param {any} value
+* @param {Record<string,any>|[Record<string,any>,Record<string,any>]} [directives]
+*/
+function attr_style(value, directives) {
+	var result = to_style(value, directives);
+	return result ? ` style="${escape_html(result, true)}"` : "";
+}
+/**
 * @template V
 * @param {Record<string, [any, any, any]>} store_values
 * @param {string} store_name
@@ -4091,6 +4099,19 @@ function store_get(store_values, store_name, store) {
 /** @param {Record<string, [any, any, any]>} store_values */
 function unsubscribe_stores(store_values) {
 	for (const store_name of Object.keys(store_values)) store_values[store_name][1]();
+}
+/**
+* Legacy mode: If the prop has a fallback and is bound in the
+* parent component, propagate the fallback value upwards.
+* @param {Record<string, unknown>} props_parent
+* @param {Record<string, unknown>} props_now
+*/
+function bind_props(props_parent, props_now) {
+	for (const key of Object.keys(props_now)) {
+		const initial_value = props_parent[key];
+		const value = props_now[key];
+		if (initial_value === void 0 && value !== void 0 && Object.getOwnPropertyDescriptor(props_parent, key)?.set) props_parent[key] = value;
+	}
 }
 /** @param {any} array_like_or_iterator */
 function ensure_array_like(array_like_or_iterator) {
@@ -4124,4 +4145,4 @@ function derived(fn) {
 	};
 }
 //#endregion
-export { experimental_async_required as $, component_root as A, component_context as B, readable as C, get as D, active_reaction as E, init_operations as F, hydrating as G, push$1 as H, mutable_source as I, hydration_mismatch as J, set_hydrate_node as K, set as L, create_text as M, get_first_child as N, set_active_effect as O, get_next_sibling as P, hydration_failed as Q, flushSync as R, is_passive_event as S, active_effect as T, async_mode_flag as U, pop$1 as V, hydrate_node as W, state_proxy_unmount as X, lifecycle_double_unmount as Y, HYDRATION_ERROR as Z, hydratable_serialization_failed as _, render as a, run as at, attr as b, get_user_code_location as c, getAllContexts as d, LEGACY_PROPS as et, getContext as f, hydratable_clobbering as g, ssr_context as h, head as i, noop as it, clear_text_content as j, set_active_reaction as k, get_render_context as l, setContext as m, derived as n, array_from as nt, store_get as o, hasContext as p, set_hydrating as q, ensure_array_like as r, define_property as rt, unsubscribe_stores as s, attr_class as t, STATE_SYMBOL as tt, createContext as u, lifecycle_function_unavailable as v, writable as w, escape_html as x, getAbortSignal as y, boundary as z };
+export { HYDRATION_ERROR as $, set_active_effect as A, flushSync as B, escape_html as C, active_effect as D, writable as E, get_first_child as F, async_mode_flag as G, component_context as H, get_next_sibling as I, set_hydrate_node as J, hydrate_node as K, init_operations as L, component_root as M, clear_text_content as N, active_reaction as O, create_text as P, state_proxy_unmount as Q, mutable_source as R, attr as S, readable as T, pop$1 as U, boundary as V, push$1 as W, hydration_mismatch as X, set_hydrating as Y, lifecycle_double_unmount as Z, ssr_context as _, ensure_array_like as a, define_property as at, lifecycle_function_unavailable as b, store_get as c, get_render_context as d, hydration_failed as et, createContext as f, setContext as g, hasContext as h, derived as i, array_from as it, set_active_reaction as j, get as k, unsubscribe_stores as l, getContext as m, attr_style as n, LEGACY_PROPS as nt, head as o, noop as ot, getAllContexts as p, hydrating as q, bind_props as r, STATE_SYMBOL as rt, render as s, run as st, attr_class as t, experimental_async_required as tt, get_user_code_location as u, hydratable_clobbering as v, is_passive_event as w, getAbortSignal as x, hydratable_serialization_failed as y, set as z };

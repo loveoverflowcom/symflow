@@ -1,31 +1,21 @@
 use axum::{
     extract::{Path, Query, State},
-    http::StatusCode,
+    http::{header::CONTENT_TYPE, HeaderValue, StatusCode},
     response::IntoResponse,
     Json,
 };
 use serde_json::Value;
-use std::sync::Arc;
-use symflow_core::{
-    compiler,
-    dsl::Flow,
-    events::{emit, RunEvent},
-    executor::{run_flow, RunContext},
-    state::RunStatus,
-    tools,
-};
+use symflow_core::{state::RunStatus, tools};
 use uuid::Uuid;
 
 use crate::{
     app::AppState,
     auth::extractor::AuthUser,
-    compat::parse_flow_script,
     dto::{
         CreateFlowResponse, CreateRunResponse, FlowDetail, FlowRunListItem, FlowSummaryDto,
-        FlowUpsertRequest, HealthResponse, RunCreateRequest, RunDetail, StepDetail,
+        FlowUpsertRequest, HealthResponse, RunCreateRequest, RunDetail,
     },
     error::ApiError,
-    realtime::run_logs_ws,
 };
 
 pub fn router(state: AppState) -> axum::Router {
@@ -41,13 +31,14 @@ pub fn router(state: AppState) -> axum::Router {
                 .put(update_flow)
                 .delete(delete_flow),
         )
-        .route("/api/flows/:id/runs", axum::routing::post(trigger_run))
-        .route("/api/runs", axum::routing::get(list_runs))
+        .route("/api/runs", axum::routing::get(list_runs).post(save_run))
         .route("/api/runs/:id", axum::routing::get(get_run))
-        .route("/api/runs/:id/steps/:step_id", axum::routing::get(get_step))
-        .route("/api/runs/:id/logs", axum::routing::get(run_logs_ws))
         .route("/api/agents", axum::routing::get(list_agents))
         .route("/api/agents/:id", axum::routing::get(get_agent))
+        .route("/api/tasks", axum::routing::get(list_tasks))
+        .route("/api/tasks/:name", axum::routing::post(run_task))
+        .route("/api/ocr/proxy", axum::routing::post(proxy_gemini_vision_ocr))
+        .route("/api/files/proxy", axum::routing::get(proxy_file))
         .merge(crate::auth::routes::router())
         .with_state(state)
 }
@@ -81,23 +72,12 @@ pub async fn get_flow(
     Path(id): Path<String>,
     State(state): State<AppState>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let mut flow = state
+    let flow = state
         .store
         .get_flow(&id)
         .await
         .map_err(|err| ApiError::internal(err.to_string()))?
         .ok_or_else(|| ApiError::not_found(format!("Flow '{id}' not found")))?;
-
-    let stored_payload = FlowUpsertRequest {
-        id: Some(flow.id.clone()),
-        name: Some(flow.name.clone()),
-        dsl_script: flow.dsl_script.clone(),
-    };
-    if let Ok(definition) = parse_flow_script(&stored_payload, Some(&flow.id)) {
-        if let Ok(normalized) = serde_json::to_string_pretty(&definition) {
-            flow.dsl_script = normalized;
-        }
-    }
 
     Ok(Json(FlowDetail::from(flow)))
 }
@@ -147,41 +127,22 @@ async fn persist_flow(
         name,
         dsl_script,
     } = payload;
-    let payload_for_parse = FlowUpsertRequest {
-        id: id.clone(),
-        name: name.clone(),
-        dsl_script: dsl_script.clone(),
-    };
-
-    let fallback_id = path_id.as_deref().or(id.as_deref());
-    let flow = parse_flow_script(&payload_for_parse, fallback_id)
-        .map_err(|err| ApiError::unprocessable(err.to_string()))?;
-
-    flow.validate()
-        .map_err(|err| ApiError::unprocessable(err.to_string()))?;
-    compiler::compile(&flow).map_err(|err| ApiError::unprocessable(err.to_string()))?;
-    let normalized_dsl_script = serde_json::to_string_pretty(&flow)
-        .map_err(|err| ApiError::internal(format!("Could not serialize JSON DSL: {err}")))?;
+    if dsl_script.trim().is_empty() {
+        return Err(ApiError::unprocessable("TypeScript source cannot be empty"));
+    }
 
     let final_id = path_id
         .or(id)
         .filter(|value| !value.trim().is_empty())
-        .unwrap_or_else(|| flow.flow_id.clone());
+        .ok_or_else(|| ApiError::unprocessable("Flow id cannot be empty"))?;
 
     let final_name = name
         .filter(|value| !value.trim().is_empty())
-        .or_else(|| {
-            if flow.name.trim().is_empty() {
-                None
-            } else {
-                Some(flow.name.clone())
-            }
-        })
         .unwrap_or_else(|| final_id.clone());
 
     state
         .store
-        .upsert_flow(&final_id, &final_name, &normalized_dsl_script)
+        .upsert_flow(&final_id, &final_name, &dsl_script)
         .await
         .map_err(|err| ApiError::internal(err.to_string()))?;
 
@@ -195,57 +156,38 @@ async fn persist_flow(
     Ok((StatusCode::OK, Json(CreateFlowResponse::new(saved))))
 }
 
-pub async fn trigger_run(
+pub async fn save_run(
     _auth: AuthUser,
-    Path(flow_id): Path<String>,
     State(state): State<AppState>,
     Json(payload): Json<RunCreateRequest>,
 ) -> Result<impl IntoResponse, ApiError> {
-    let flow = state
+    if !matches!(payload.status, RunStatus::Success | RunStatus::Failed) {
+        return Err(ApiError::unprocessable(
+            "Browser-submitted run status must be SUCCESS or FAILED",
+        ));
+    }
+    state
         .store
-        .get_flow(&flow_id)
+        .get_flow(&payload.flow_id)
         .await
         .map_err(|err| ApiError::internal(err.to_string()))?
-        .ok_or_else(|| ApiError::not_found(format!("Flow '{flow_id}' not found")))?;
-
-    let flow_definition: Flow = parse_flow_script(
-        &FlowUpsertRequest {
-            id: Some(flow_id.clone()),
-            name: Some(flow.name.clone()),
-            dsl_script: flow.dsl_script.clone(),
-        },
-        Some(&flow_id),
-    )
-    .map_err(|err| ApiError::unprocessable(err.to_string()))?;
-
-    let initial_inputs = payload.into_initial_inputs();
+        .ok_or_else(|| ApiError::not_found(format!("Flow '{}' not found", payload.flow_id)))?;
     let run_id = state
         .store
-        .create_run(&flow_id, initial_inputs.clone())
+        .create_run(&payload.flow_id, payload.initial_input)
         .await
         .map_err(|err| ApiError::internal(err.to_string()))?;
-
-    let sandbox_dir = state.sandbox_dir.clone();
-    let store = Arc::clone(&state.store);
-    let bus = state.bus.clone();
-    tokio::spawn(async move {
-        let bus_for_ctx = bus.clone();
-        let ctx = RunContext {
+    state
+        .store
+        .save_run_result(
             run_id,
-            sandbox_dir,
-            initial_inputs: initial_inputs.unwrap_or_else(|| Value::Object(serde_json::Map::new())),
-            bus: Some(bus_for_ctx),
-        };
-
-        if let Err(err) = run_flow(&flow_definition, &ctx, store.as_ref()).await {
-            tracing::error!(run_id = %run_id, error = %err, "background run failed");
-            let _ = store.set_run_status(run_id, RunStatus::Failed).await;
-            emit(
-                ctx.bus.as_ref(),
-                RunEvent::run_status(run_id, RunStatus::Failed.as_db_str()),
-            );
-        }
-    });
+            payload.status,
+            payload.output,
+            Value::Array(payload.logs),
+            payload.error,
+        )
+        .await
+        .map_err(|err| ApiError::internal(err.to_string()))?;
 
     let run = state
         .store
@@ -254,16 +196,7 @@ pub async fn trigger_run(
         .map_err(|err| ApiError::internal(err.to_string()))?
         .ok_or_else(|| ApiError::internal(format!("Run '{run_id}' could not be read back")))?;
 
-    let steps = state
-        .store
-        .list_steps(run_id)
-        .await
-        .map_err(|err| ApiError::internal(err.to_string()))?;
-
-    Ok((
-        StatusCode::ACCEPTED,
-        Json(CreateRunResponse::new(run, steps)),
-    ))
+    Ok((StatusCode::CREATED, Json(CreateRunResponse::new(run))))
 }
 
 pub async fn get_run(
@@ -278,30 +211,7 @@ pub async fn get_run(
         .map_err(|err| ApiError::internal(err.to_string()))?
         .ok_or_else(|| ApiError::not_found(format!("Run '{id}' not found")))?;
 
-    let steps = state
-        .store
-        .list_steps(id)
-        .await
-        .map_err(|err| ApiError::internal(err.to_string()))?;
-
-    Ok(Json(RunDetail::new(run, steps)))
-}
-
-pub async fn get_step(
-    _auth: AuthUser,
-    Path((run_id, step_id)): Path<(Uuid, String)>,
-    State(state): State<AppState>,
-) -> Result<impl IntoResponse, ApiError> {
-    let step = state
-        .store
-        .get_step(run_id, &step_id)
-        .await
-        .map_err(|err| ApiError::internal(err.to_string()))?
-        .ok_or_else(|| {
-            ApiError::not_found(format!("Step '{step_id}' not found for run '{run_id}'"))
-        })?;
-
-    Ok(Json(StepDetail::from(step)))
+    Ok(Json(RunDetail::new(run)))
 }
 
 #[derive(Debug, Default, serde::Deserialize)]
@@ -354,6 +264,128 @@ pub async fn get_agent(Path(id): Path<String>) -> Result<impl IntoResponse, ApiE
     Ok(Json(agent))
 }
 
+pub async fn list_tasks(
+    _auth: AuthUser,
+    State(state): State<AppState>,
+) -> Json<Vec<crate::task_registry::TaskMeta>> {
+    Json(state.tasks.list())
+}
+
+pub async fn run_task(
+    _auth: AuthUser,
+    Path(name): Path<String>,
+    State(state): State<AppState>,
+    Json(input): Json<Value>,
+) -> Result<Json<Value>, ApiError> {
+    state
+        .tasks
+        .execute(&name, input, &state.sandbox_dir)
+        .await
+        .map(Json)
+}
+
+pub async fn proxy_gemini_vision_ocr(
+    _auth: AuthUser,
+    Json(payload): Json<Value>,
+) -> Result<impl IntoResponse, ApiError> {
+    let api_key = std::env::var("GEMINI_API_KEY")
+        .or_else(|_| std::env::var("GOOGLE_API_KEY"))
+        .map(|value| value.trim().to_owned())
+        .unwrap_or_default();
+    if api_key.is_empty() {
+        return Err(ApiError::internal(
+            "GEMINI_API_KEY is required for Gemini vision OCR proxy",
+        ));
+    }
+
+    let endpoint = std::env::var("GEMINI_VISION_ENDPOINT").unwrap_or_else(|_| {
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent"
+            .to_string()
+    });
+    let response = reqwest::Client::new()
+        .post(&endpoint)
+        .header("x-goog-api-key", api_key)
+        .json(&payload)
+        .send()
+        .await
+        .map_err(|error| ApiError::bad_gateway(format!("Gemini OCR request failed: {error}")))?;
+
+    let status = response.status();
+    let body = response
+        .text()
+        .await
+        .map_err(|error| ApiError::bad_gateway(format!("Could not read Gemini OCR response: {error}")))?;
+
+    if !status.is_success() {
+        return Err(ApiError::bad_gateway(format!(
+            "Gemini OCR failed ({}): {}",
+            status.as_u16(),
+            body.trim()
+        )));
+    }
+
+    let json_body: Value = serde_json::from_str(&body)
+        .map_err(|error| ApiError::bad_gateway(format!("Gemini OCR returned invalid JSON: {error}")))?;
+    Ok(Json(json_body))
+}
+
+#[derive(Debug, serde::Deserialize)]
+pub struct FileProxyQuery {
+    url: String,
+}
+
+pub async fn proxy_file(
+    _auth: AuthUser,
+    Query(query): Query<FileProxyQuery>,
+) -> Result<impl IntoResponse, ApiError> {
+    const MAX_FILE_BYTES: usize = 25 * 1024 * 1024;
+
+    let url = reqwest::Url::parse(query.url.trim())
+        .map_err(|error| ApiError::bad_request(format!("Invalid file URL: {error}")))?;
+    if !matches!(url.scheme(), "http" | "https") {
+        return Err(ApiError::bad_request("Only http and https file URLs are supported"));
+    }
+
+    let response = reqwest::Client::new()
+        .get(url)
+        .header(
+            reqwest::header::USER_AGENT,
+            "Symflow file proxy/0.1 (+http://localhost)",
+        )
+        .send()
+        .await
+        .map_err(|error| ApiError::bad_gateway(format!("File proxy request failed: {error}")))?;
+
+    let status = response.status();
+    if !status.is_success() {
+        return Err(ApiError::bad_gateway(format!(
+            "File proxy failed ({}): {}",
+            status.as_u16(),
+            status.canonical_reason().unwrap_or("upstream error")
+        )));
+    }
+
+    if response.content_length().is_some_and(|length| length > MAX_FILE_BYTES as u64) {
+        return Err(ApiError::unprocessable("File is too large to proxy"));
+    }
+
+    let content_type = response
+        .headers()
+        .get(reqwest::header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .and_then(|value| HeaderValue::from_str(value).ok())
+        .unwrap_or_else(|| HeaderValue::from_static("application/octet-stream"));
+    let bytes = response
+        .bytes()
+        .await
+        .map_err(|error| ApiError::bad_gateway(format!("Could not read proxied file: {error}")))?;
+    if bytes.len() > MAX_FILE_BYTES {
+        return Err(ApiError::unprocessable("File is too large to proxy"));
+    }
+
+    Ok(([(CONTENT_TYPE, content_type)], bytes))
+}
+
 #[cfg(test)]
 mod tests {
     use super::router;
@@ -397,98 +429,96 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn post_json_persists_and_returns_pretty_json() {
+    async fn post_typescript_persists_source_verbatim() {
+        let source = "export async function main(input: unknown) {\n  return input;\n}\n";
         let payload = json!({
-            "name": "JSON flow",
-            "dsl_script": "{\"flow_id\":\"json-flow\",\"name\":\"JSON flow\",\"steps\":[{\"id\":\"start\",\"type\":\"manual_trigger\"}]}"
+            "id": "typescript-flow",
+            "name": "TypeScript flow",
+            "dsl_script": source
         });
 
         let (status, body) = send_json(router(test_state()), "POST", "/api/flows", payload).await;
 
         assert_eq!(status, StatusCode::OK);
         let response: Value = serde_json::from_str(&body).expect("JSON response");
-        let script = response["dsl_script"].as_str().expect("DSL string");
-        assert!(script.contains("\n  \"flow_id\": \"json-flow\""));
-        assert_eq!(
-            serde_json::from_str::<Value>(script).expect("normalized JSON")["flow_id"],
-            "json-flow"
-        );
+        assert_eq!(response["dsl_script"], source);
     }
 
     #[tokio::test]
-    async fn malformed_json_returns_unprocessable_entity() {
+    async fn task_registry_endpoint_lists_editor_tasks() {
+        let (status, body) =
+            send_json(router(test_state()), "GET", "/api/tasks", Value::Null).await;
+
+        assert_eq!(status, StatusCode::OK);
+        let tasks: Vec<Value> = serde_json::from_str(&body).expect("task list");
+        assert!(tasks.iter().any(|task| task["name"] == "web_scraper"));
+        assert!(tasks.iter().any(|task| task["name"] == "ai_agent"));
+        assert!(tasks.iter().any(|task| task["name"] == "pdf_report"));
+        assert!(tasks.iter().all(|task| task["runtime"] == "remote"));
+    }
+
+    #[tokio::test]
+    async fn empty_typescript_returns_unprocessable_entity() {
         let payload = json!({
+            "id": "broken",
             "name": "Broken",
-            "dsl_script": "{\"flow_id\":\"broken\",]"
+            "dsl_script": "   "
         });
 
         let (status, body) = send_json(router(test_state()), "POST", "/api/flows", payload).await;
 
         assert_eq!(status, StatusCode::UNPROCESSABLE_ENTITY);
-        assert!(body.contains("invalid JSON DSL"));
+        assert!(body.contains("TypeScript source cannot be empty"));
     }
 
     #[tokio::test]
-    async fn legacy_json_gets_flow_id_from_request_id() {
+    async fn request_id_is_used_as_storage_id() {
         let payload = json!({
             "id": "request-flow-id",
-            "name": "Legacy JSON",
-            "dsl_script": "{\"name\":\"Legacy JSON\",\"steps\":[{\"id\":\"start\",\"type\":\"manual_trigger\"}]}"
+            "name": "Stored TypeScript",
+            "dsl_script": "export async function main() { return 42; }"
         });
 
         let (status, body) = send_json(router(test_state()), "POST", "/api/flows", payload).await;
 
         assert_eq!(status, StatusCode::OK);
         let response: Value = serde_json::from_str(&body).expect("JSON response");
-        let script = response["dsl_script"].as_str().expect("DSL string");
-        assert_eq!(
-            serde_json::from_str::<Value>(script).expect("normalized JSON")["flow_id"],
-            "request-flow-id"
-        );
+        assert_eq!(response["id"], "request-flow-id");
     }
 
     #[tokio::test]
-    async fn legacy_yaml_is_saved_as_json_and_can_trigger() {
+    async fn browser_result_is_saved_as_a_terminal_run() {
         let state = test_state();
         let app = router(state.clone());
         let payload = json!({
-            "id": "legacy-yaml",
-            "name": "Legacy YAML",
-            "dsl_script": "name: Legacy YAML\nsteps:\n  - id: start\n    type: manual_trigger\n"
+            "id": "browser-flow",
+            "name": "Browser flow",
+            "dsl_script": "export async function main() { return { ok: true }; }"
         });
 
-        let (save_status, save_body) = send_json(app.clone(), "POST", "/api/flows", payload).await;
+        let (save_status, _) = send_json(app.clone(), "POST", "/api/flows", payload).await;
         assert_eq!(save_status, StatusCode::OK);
-        let saved: Value = serde_json::from_str(&save_body).expect("save response");
-        serde_json::from_str::<Value>(saved["dsl_script"].as_str().expect("DSL string"))
-            .expect("saved script is JSON");
-
-        let (run_status, _) = send_json(
-            app,
+        let (run_status, run_body) = send_json(
+            app.clone(),
             "POST",
-            "/api/flows/legacy-yaml/runs",
-            json!({"inputs": {}}),
+            "/api/runs",
+            json!({
+                "flow_id": "browser-flow",
+                "initial_input": {},
+                "status": "SUCCESS",
+                "output": {"ok": true},
+                "logs": [{"type": "success", "timestamp": 1}]
+            }),
         )
         .await;
-        assert_eq!(run_status, StatusCode::ACCEPTED);
-
-        state
-            .store
-            .upsert_flow(
-                "stored-yaml",
-                "Stored YAML",
-                "name: Stored YAML\nsteps:\n  - id: start\n    type: manual_trigger\n",
-            )
-            .await
-            .expect("seed legacy stored flow");
+        assert_eq!(run_status, StatusCode::CREATED);
+        let saved_run: Value = serde_json::from_str(&run_body).expect("run response");
+        let run_id = saved_run["id"].as_str().expect("run id");
         let (get_status, get_body) =
-            send_json(router(state), "GET", "/api/flows/stored-yaml", Value::Null).await;
+            send_json(app, "GET", &format!("/api/runs/{run_id}"), Value::Null).await;
         assert_eq!(get_status, StatusCode::OK);
         let fetched: Value = serde_json::from_str(&get_body).expect("get response");
-        let fetched_script = fetched["dsl_script"].as_str().expect("fetched DSL");
-        assert_eq!(
-            serde_json::from_str::<Value>(fetched_script).expect("GET returns JSON")["flow_id"],
-            "stored-yaml"
-        );
+        assert_eq!(fetched["output"], json!({"ok": true}));
+        assert_eq!(fetched["execution_logs"][0]["type"], "success");
     }
 }

@@ -1,4 +1,4 @@
-//#region node_modules/@sveltejs/kit/src/runtime/app/paths/internal/server.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/app/paths/internal/server.js
 var base = "";
 var assets = base;
 var app_dir = "_app";
@@ -22,24 +22,13 @@ function reset() {
 function set_assets(path) {
 	assets = initial.assets = path;
 }
-/**
-* `$env/dynamic/public`
-* @type {Record<string, string>}
-*/
-var public_env = {};
-/** @type {(environment: Record<string, string>) => void} */
-function set_private_env(environment) {}
-/** @type {(environment: Record<string, string>) => void} */
-function set_public_env(environment) {
-	public_env = environment;
-}
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/app/env/internal.js
-var version = "1783572234268";
+//#region ../../node_modules/@sveltejs/kit/src/runtime/app/env/internal.js
+var version = "1783756648461";
 var prerendering = false;
 function set_building() {}
 function set_prerendering() {
 	prerendering = true;
 }
 //#endregion
-export { public_env as a, app_dir as c, override as d, reset as f, version as i, assets as l, set_building as n, set_private_env as o, set_assets as p, set_prerendering as r, set_public_env as s, prerendering as t, base as u };
+export { app_dir as a, override as c, version as i, reset as l, set_building as n, assets as o, set_prerendering as r, base as s, prerendering as t, set_assets as u };

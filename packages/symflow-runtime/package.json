@@ -1,0 +1,18 @@
+{
+  "name": "@symflow/runtime",
+  "version": "0.1.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./ocr": "./src/ocr/index.ts",
+    "./tasks/local": "./src/tasks/local.ts",
+    "./tasks/remote": "./src/tasks/remote.ts"
+  },
+  "dependencies": {
+    "esbuild-wasm": "^0.25.6",
+    "jszip": "^3.10.1"
+  },
+  "devDependencies": {
+    "ts-morph": "^28.0.0"
+  }
+}

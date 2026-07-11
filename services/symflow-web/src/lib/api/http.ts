@@ -1,5 +1,5 @@
-import type { AgentLogEvent, FlowDetail, FlowRun, FlowSummary, FlowUpsertPayload } from '$lib/types/symflow';
-import { createApiUrl, createWebSocketUrl, resolveApiBaseUrl } from '$lib/api/url';
+import type { AgentLogEvent, FlowDetail, FlowRun, FlowSummary, FlowUpsertPayload, SaveRunPayload, TaskMeta } from '$lib/types/symflow';
+import { createApiUrl, resolveApiBaseUrl } from '$lib/api/url';
 
 const apiBaseUrl = resolveApiBaseUrl();
 
@@ -58,21 +58,30 @@ export async function saveFlow(payload: FlowUpsertPayload, fetchImpl: typeof fet
   return parseResponse<FlowDetail>(response);
 }
 
-export async function triggerRun(
-  flowId: string,
-  inputs: unknown,
+export async function saveRun(
+  payload: SaveRunPayload,
   fetchImpl: typeof fetch = fetch
 ): Promise<FlowRun> {
-  const response = await fetchImpl(createUrl(`/api/flows/${flowId}/runs`), {
+  const response = await fetchImpl(createUrl('/api/runs'), {
     method: 'POST',
     headers: {
       'content-type': 'application/json'
     },
     credentials: 'include',
-    body: JSON.stringify({ inputs })
+    body: JSON.stringify(payload)
   });
 
   return parseResponse<FlowRun>(response);
+}
+
+export async function executeTask(name: string, input: unknown, fetchImpl: typeof fetch = fetch): Promise<unknown> {
+  const response = await fetchImpl(createUrl(`/api/tasks/${encodeURIComponent(name)}`), {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(input)
+  });
+  return parseResponse<unknown>(response);
 }
 
 export async function getRun(runId: string, fetchImpl: typeof fetch = fetch): Promise<FlowRun> {
@@ -80,8 +89,9 @@ export async function getRun(runId: string, fetchImpl: typeof fetch = fetch): Pr
   return parseResponse<FlowRun>(response);
 }
 
-export function getRunLogsWebSocketUrl(runId: string): string {
-  return createWebSocketUrl(`/api/runs/${runId}/logs`, apiBaseUrl);
+export async function listTasks(fetchImpl: typeof fetch = fetch): Promise<TaskMeta[]> {
+  const response = await fetchImpl(createUrl('/api/tasks'), { credentials: 'include' });
+  return parseResponse<TaskMeta[]>(response);
 }
 
 export function parseLogMessage(data: string): AgentLogEvent {

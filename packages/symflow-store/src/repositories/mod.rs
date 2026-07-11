@@ -2,7 +2,6 @@ pub mod auth_identities;
 pub mod flow_runs;
 pub mod flows;
 pub mod sessions;
-pub mod step_executions;
 pub mod users;
 
 use symflow_core::error::StoreError;

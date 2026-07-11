@@ -1,44 +1,41 @@
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use symflow_core::events::{EventBus, RunEvent};
 use symflow_core::mem::MemoryStore;
 use symflow_core::store::Store;
 use symflow_store::AuthStore;
-use tokio::sync::broadcast;
 
 use crate::auth::memory_store::MemoryAuthStore;
+use crate::task_registry::BackendTaskRegistry;
 
 #[derive(Clone)]
 pub struct AppState {
     pub store: Arc<dyn Store>,
     pub auth_store: Arc<dyn AuthStore>,
     pub auth_required: bool,
-    pub bus: EventBus,
     pub sandbox_dir: PathBuf,
+    pub tasks: Arc<BackendTaskRegistry>,
 }
 
 impl AppState {
     pub fn new(sandbox_dir: PathBuf) -> Self {
-        let (bus, _) = broadcast::channel::<RunEvent>(512);
         Self {
             store: Arc::new(MemoryStore::new()),
             auth_store: Arc::new(MemoryAuthStore::new()),
             auth_required: false,
-            bus,
             sandbox_dir,
+            tasks: Arc::new(BackendTaskRegistry),
         }
     }
 
     #[cfg(test)]
     pub fn new_auth_required(sandbox_dir: PathBuf) -> Self {
-        let (bus, _) = broadcast::channel::<RunEvent>(512);
         Self {
             store: Arc::new(MemoryStore::new()),
             auth_store: Arc::new(MemoryAuthStore::new()),
             auth_required: true,
-            bus,
             sandbox_dir,
+            tasks: Arc::new(BackendTaskRegistry),
         }
     }
 
@@ -48,13 +45,12 @@ impl AppState {
         auth_store: Arc<dyn AuthStore>,
         auth_required: bool,
     ) -> Self {
-        let (bus, _) = broadcast::channel::<RunEvent>(512);
         Self {
             store,
             auth_store,
             auth_required,
-            bus,
             sandbox_dir,
+            tasks: Arc::new(BackendTaskRegistry),
         }
     }
 }

@@ -1,7 +1,19 @@
 import { t as __exportAll } from "./rolldown-runtime.js";
 import "./internal.js";
-import { $ as experimental_async_required, A as component_root, B as component_context, D as get, E as active_reaction, F as init_operations, G as hydrating, H as push, I as mutable_source, J as hydration_mismatch, K as set_hydrate_node, L as set, M as create_text, N as get_first_child, O as set_active_effect, P as get_next_sibling, Q as hydration_failed, R as flushSync, S as is_passive_event, T as active_effect, U as async_mode_flag, V as pop, W as hydrate_node, Z as HYDRATION_ERROR, _ as hydratable_serialization_failed, a as render, at as run, d as getAllContexts, et as LEGACY_PROPS, f as getContext, h as ssr_context, it as noop, j as clear_text_content, k as set_active_reaction, l as get_render_context, m as setContext, n as derived, nt as array_from, p as hasContext, q as set_hydrating, rt as define_property, u as createContext, v as lifecycle_function_unavailable, y as getAbortSignal, z as boundary } from "./server.js";
+import { $ as HYDRATION_ERROR, A as set_active_effect, B as flushSync, D as active_effect, F as get_first_child, G as async_mode_flag, H as component_context, I as get_next_sibling, J as set_hydrate_node, K as hydrate_node, L as init_operations, M as component_root, N as clear_text_content, O as active_reaction, P as create_text, R as mutable_source, U as pop, V as boundary, W as push, X as hydration_mismatch, Y as set_hydrating, _ as ssr_context, at as define_property, b as lifecycle_function_unavailable, d as get_render_context, et as hydration_failed, f as createContext, g as setContext, h as hasContext, i as derived, it as array_from, j as set_active_reaction, k as get, m as getContext, nt as LEGACY_PROPS, ot as noop, p as getAllContexts, q as hydrating, s as render, st as run, tt as experimental_async_required, w as is_passive_event, x as getAbortSignal, y as hydratable_serialization_failed, z as set } from "./server.js";
 import * as devalue from "devalue";
+/**
+* `$env/dynamic/public`
+* @type {Record<string, string>}
+*/
+var public_env = {};
+/** @type {(environment: Record<string, string>) => void} */
+function set_private_env(environment) {}
+/** @type {(environment: Record<string, string>) => void} */
+function set_public_env(environment) {
+	public_env = environment;
+}
+//#endregion
 //#region \0virtual:__sveltekit/server
 var read_implementation = null;
 function set_read_implementation(fn) {
@@ -9,7 +21,7 @@ function set_read_implementation(fn) {
 }
 function set_manifest(_) {}
 //#endregion
-//#region node_modules/svelte/src/internal/client/dom/elements/events.js
+//#region ../../node_modules/svelte/src/internal/client/dom/elements/events.js
 /**
 * Used on elements, as a map of event type -> event handler,
 * and on events themselves to track which element handled an event
@@ -93,7 +105,7 @@ function handle_event_propagation(event) {
 }
 globalThis?.window?.trustedTypes;
 //#endregion
-//#region node_modules/svelte/src/internal/client/dom/template.js
+//#region ../../node_modules/svelte/src/internal/client/dom/template.js
 /**
 * @param {TemplateNode} start
 * @param {TemplateNode | null} end
@@ -283,7 +295,7 @@ function unmount$1(component, options) {
 	return Promise.resolve();
 }
 //#endregion
-//#region node_modules/svelte/src/legacy/legacy-client.js
+//#region ../../node_modules/svelte/src/legacy/legacy-client.js
 /** @import { ComponentConstructorOptions, ComponentType, SvelteComponent, Component } from 'svelte' */
 /**
 * Takes the component function and returns a Svelte 4 compatible component constructor.
@@ -408,7 +420,7 @@ var Svelte4Component = class {
 	}
 };
 //#endregion
-//#region node_modules/svelte/src/legacy/legacy-server.js
+//#region ../../node_modules/svelte/src/legacy/legacy-server.js
 /** @import { SvelteComponent } from '../index.js' */
 /** @import { Csp } from '#server' */
 /** @typedef {{ head: string, html: string, css: { code: string, map: null }; hashes?: { script: `sha256-${string}`[] } }} LegacyRenderResult */
@@ -476,7 +488,7 @@ value: (onfulfilled, onrejected) => {
 	return component_constructor;
 }
 //#endregion
-//#region node_modules/svelte/src/internal/server/hydratable.js
+//#region ../../node_modules/svelte/src/internal/server/hydratable.js
 /** @import { HydratableLookupEntry } from '#server' */
 /**
 * @template T
@@ -538,7 +550,7 @@ function serialization_stack(root_stack, uneval_stack) {
 	return out || "<missing stack trace>";
 }
 //#endregion
-//#region node_modules/svelte/src/internal/server/blocks/snippet.js
+//#region ../../node_modules/svelte/src/internal/server/blocks/snippet.js
 /** @import { Snippet } from 'svelte' */
 /** @import { Renderer } from '../renderer' */
 /** @import { Getters } from '#shared' */
@@ -558,7 +570,7 @@ function createRawSnippet(fn) {
 	};
 }
 //#endregion
-//#region node_modules/svelte/src/index-server.js
+//#region ../../node_modules/svelte/src/index-server.js
 /** @import { SSRContext } from '#server' */
 /** @import { Renderer } from './internal/server/renderer.js' */
 var index_server_exports = /* @__PURE__ */ __exportAll({
@@ -702,7 +714,7 @@ var options = {
 		app: ({ head, body, assets, nonce, env }) => "<!doctype html>\n<html lang=\"en\">\n  <head>\n    <meta charset=\"utf-8\" />\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />\n    " + head + "\n  </head>\n  <body data-sveltekit-preload-data=\"hover\">\n    <div style=\"display: contents\">" + body + "</div>\n  </body>\n</html>\n",
 		error: error_template_default
 	},
-	version_hash: "m6g3sh"
+	version_hash: "iigzjp"
 };
 async function get_hooks() {
 	let handle;
@@ -724,4 +736,4 @@ async function get_hooks() {
 	};
 }
 //#endregion
-export { set_manifest as a, read_implementation as i, options as n, set_read_implementation as o, index_server_exports as r, get_hooks as t };
+export { read_implementation as a, public_env as c, onDestroy as i, set_private_env as l, options as n, set_manifest as o, index_server_exports as r, set_read_implementation as s, get_hooks as t, set_public_env as u };

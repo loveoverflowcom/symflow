@@ -2,7 +2,6 @@
 resolver = "2"
 members = [
     ".",
-    "../symflow-cli",
     "../../packages/symflow-core",
     "../../packages/symflow-store",
 ]
@@ -87,6 +86,10 @@ async-trait = { workspace = true }
 regex = { workspace = true }
 once_cell = { workspace = true }
 time = "0.3"
+reqwest = { workspace = true }
+scraper = { workspace = true }
+lopdf = { workspace = true }
+base64 = "0.22"
 
 [dev-dependencies]
 tower = { version = "0.5", features = ["util"] }

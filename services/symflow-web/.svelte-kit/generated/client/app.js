@@ -35,7 +35,7 @@ export const dictionary = {
 		"/login": [8],
 		"/register": [9],
 		"/runs/[id]": [10],
-		"/skills": [11]
+		"/settings": [11]
 	};
 
 export const hooks = {

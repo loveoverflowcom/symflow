@@ -1,7 +1,7 @@
 //! Trait `Store` — ranh giới lưu trữ giữa symflow-core và symflow-store.
 
 use crate::error::StoreError;
-use crate::state::{RunStatus, StepStatus};
+use crate::state::RunStatus;
 use async_trait::async_trait;
 use chrono::{DateTime, Utc};
 use serde::Serialize;
@@ -29,20 +29,11 @@ pub struct RunRecord {
     pub flow_id: String,
     pub status: RunStatus,
     pub initial_inputs: Option<Value>,
+    pub output: Option<Value>,
+    pub execution_logs: Option<Value>,
+    pub error: Option<String>,
     pub created_at: DateTime<Utc>,
     pub finished_at: Option<DateTime<Utc>>,
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct StepRecord {
-    pub run_id: Uuid,
-    pub step_id: String,
-    pub status: StepStatus,
-    pub resolved_inputs: Option<Value>,
-    pub outputs: Option<Value>,
-    pub agent_logs: Option<Value>,
-    pub error: Option<String>,
-    pub executed_at: DateTime<Utc>,
 }
 
 #[async_trait]
@@ -60,47 +51,14 @@ pub trait Store: Send + Sync {
         initial_inputs: Option<Value>,
     ) -> Result<Uuid, StoreError>;
     async fn set_run_status(&self, run_id: Uuid, status: RunStatus) -> Result<(), StoreError>;
+    async fn save_run_result(
+        &self,
+        run_id: Uuid,
+        status: RunStatus,
+        output: Option<Value>,
+        execution_logs: Value,
+        error: Option<String>,
+    ) -> Result<(), StoreError>;
     async fn get_run(&self, run_id: Uuid) -> Result<Option<RunRecord>, StoreError>;
     async fn list_runs(&self) -> Result<Vec<RunRecord>, StoreError>;
-
-    // ---- steps ---
-    async fn upsert_step(
-        &self,
-        run_id: Uuid,
-        step_id: &str,
-        status: StepStatus,
-    ) -> Result<(), StoreError>;
-    async fn set_step_status(
-        &self,
-        run_id: Uuid,
-        step_id: &str,
-        status: StepStatus,
-    ) -> Result<(), StoreError>;
-    async fn set_step_resolved_inputs(
-        &self,
-        run_id: Uuid,
-        step_id: &str,
-        inputs: &Value,
-    ) -> Result<(), StoreError>;
-    async fn complete_step(
-        &self,
-        run_id: Uuid,
-        step_id: &str,
-        outputs: &Value,
-    ) -> Result<(), StoreError>;
-    async fn fail_step(&self, run_id: Uuid, step_id: &str, error: &str) -> Result<(), StoreError>;
-    async fn get_step_outputs(
-        &self,
-        run_id: Uuid,
-        step_id: &str,
-    ) -> Result<Option<Value>, StoreError>;
-    async fn append_agent_log(
-        &self,
-        run_id: Uuid,
-        step_id: &str,
-        entry: Value,
-    ) -> Result<(), StoreError>;
-    async fn list_steps(&self, run_id: Uuid) -> Result<Vec<StepRecord>, StoreError>;
-    async fn get_step(&self, run_id: Uuid, step_id: &str)
-        -> Result<Option<StepRecord>, StoreError>;
 }

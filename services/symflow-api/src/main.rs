@@ -1,10 +1,9 @@
 mod app;
 mod auth;
-mod compat;
 mod dto;
 mod error;
-mod realtime;
 mod routes;
+mod task_registry;
 
 use std::net::SocketAddr;
 use std::sync::Arc;

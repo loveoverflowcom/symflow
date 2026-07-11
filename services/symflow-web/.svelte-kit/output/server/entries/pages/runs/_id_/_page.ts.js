@@ -1,4 +1,4 @@
-import { r as getRun } from "../../../../chunks/client.js";
+import { i as getRun } from "../../../../chunks/client.js";
 import { t as toViewError } from "../../../../chunks/errors.js";
 //#region src/routes/runs/[id]/+page.ts
 async function load({ fetch, params }) {

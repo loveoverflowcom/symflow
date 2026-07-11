@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use symflow_core::state::RunStatus;
-use symflow_core::store::{FlowRecord, FlowSummary, RunRecord, StepRecord};
+use symflow_core::store::{FlowRecord, FlowSummary, RunRecord};
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct FlowUpsertRequest {
@@ -14,16 +14,16 @@ pub struct FlowUpsertRequest {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct RunCreateRequest {
+    pub flow_id: String,
     #[serde(default)]
-    pub inputs: Option<Value>,
+    pub initial_input: Option<Value>,
+    pub status: RunStatus,
     #[serde(default)]
-    pub initial_inputs: Option<Value>,
-}
-
-impl RunCreateRequest {
-    pub fn into_initial_inputs(self) -> Option<Value> {
-        self.inputs.or(self.initial_inputs)
-    }
+    pub output: Option<Value>,
+    #[serde(default)]
+    pub logs: Vec<Value>,
+    #[serde(default)]
+    pub error: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize)]
@@ -69,24 +69,11 @@ pub struct FlowRunListItem {
 pub struct RunDetail {
     #[serde(flatten)]
     pub run: RunRecord,
-    pub steps: Vec<StepRecord>,
 }
 
 impl RunDetail {
-    pub fn new(run: RunRecord, steps: Vec<StepRecord>) -> Self {
-        Self { run, steps }
-    }
-}
-
-#[derive(Debug, Clone, Serialize)]
-pub struct StepDetail {
-    #[serde(flatten)]
-    pub step: StepRecord,
-}
-
-impl From<StepRecord> for StepDetail {
-    fn from(step: StepRecord) -> Self {
-        Self { step }
+    pub fn new(run: RunRecord) -> Self {
+        Self { run }
     }
 }
 
@@ -117,9 +104,9 @@ pub struct CreateRunResponse {
 }
 
 impl CreateRunResponse {
-    pub fn new(run: RunRecord, steps: Vec<StepRecord>) -> Self {
+    pub fn new(run: RunRecord) -> Self {
         Self {
-            run: RunDetail::new(run, steps),
+            run: RunDetail::new(run),
         }
     }
 }

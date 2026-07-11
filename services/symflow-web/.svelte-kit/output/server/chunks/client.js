@@ -18,27 +18,20 @@ function createApiUrl(path, baseUrl = resolveApiBaseUrl()) {
 	if (!baseUrl) return path;
 	return new URL(path, `${baseUrl}/`).toString();
 }
-function createWebSocketUrl(path, baseUrl = resolveApiBaseUrl(), locationOrigin = typeof window !== "undefined" ? window.location.origin : "") {
-	assertAbsoluteBaseUrl(baseUrl);
-	const targetOrigin = baseUrl || locationOrigin;
-	if (!targetOrigin) return "";
-	const url = new URL(path, baseUrl ? `${baseUrl}/` : targetOrigin);
-	url.protocol = url.protocol === "https:" ? "wss:" : "ws:";
-	return url.toString();
-}
 //#endregion
 //#region src/lib/api/http.ts
 var http_exports = /* @__PURE__ */ __exportAll({
 	ApiError: () => ApiError,
 	createUrl: () => createUrl,
+	executeTask: () => executeTask$2,
 	getFlow: () => getFlow$2,
 	getRun: () => getRun$2,
-	getRunLogsWebSocketUrl: () => getRunLogsWebSocketUrl$2,
 	listFlows: () => listFlows$2,
-	parseLogMessage: () => parseLogMessage$2,
+	listTasks: () => listTasks$2,
+	parseLogMessage: () => parseLogMessage$1,
 	parseResponse: () => parseResponse,
 	saveFlow: () => saveFlow$1,
-	triggerRun: () => triggerRun$1
+	saveRun: () => saveRun$1
 });
 var apiBaseUrl = resolveApiBaseUrl();
 var ApiError = class extends Error {
@@ -78,21 +71,29 @@ async function saveFlow$1(payload, fetchImpl = fetch) {
 		body: JSON.stringify(payload)
 	}));
 }
-async function triggerRun$1(flowId, inputs, fetchImpl = fetch) {
-	return parseResponse(await fetchImpl(createUrl(`/api/flows/${flowId}/runs`), {
+async function saveRun$1(payload, fetchImpl = fetch) {
+	return parseResponse(await fetchImpl(createUrl("/api/runs"), {
 		method: "POST",
 		headers: { "content-type": "application/json" },
 		credentials: "include",
-		body: JSON.stringify({ inputs })
+		body: JSON.stringify(payload)
+	}));
+}
+async function executeTask$2(name, input, fetchImpl = fetch) {
+	return parseResponse(await fetchImpl(createUrl(`/api/tasks/${encodeURIComponent(name)}`), {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		credentials: "include",
+		body: JSON.stringify(input)
 	}));
 }
 async function getRun$2(runId, fetchImpl = fetch) {
 	return parseResponse(await fetchImpl(createUrl(`/api/runs/${runId}`), { credentials: "include" }));
 }
-function getRunLogsWebSocketUrl$2(runId) {
-	return createWebSocketUrl(`/api/runs/${runId}/logs`, apiBaseUrl);
+async function listTasks$2(fetchImpl = fetch) {
+	return parseResponse(await fetchImpl(createUrl("/api/tasks"), { credentials: "include" }));
 }
-function parseLogMessage$2(data) {
+function parseLogMessage$1(data) {
 	return JSON.parse(data);
 }
 //#endregion
@@ -129,23 +130,6 @@ async function getMe$2(fetchImpl = fetch) {
 	return parseResponse(await fetchImpl(createUrl("/api/auth/me"), { credentials: "include" }));
 }
 //#endregion
-//#region src/lib/utils/dsl.ts
-var DEFAULT_FLOW_DSL = JSON.stringify({
-	flow_id: "new-flow",
-	name: "New flow",
-	steps: [{
-		id: "receive_input",
-		type: "manual_trigger",
-		with: { message: "Hello from Symflow" }
-	}]
-}, null, 2);
-function parseJsonDsl(source) {
-	return JSON.parse(source);
-}
-function formatJsonDsl(source) {
-	return JSON.stringify(parseJsonDsl(source), null, 2);
-}
-//#endregion
 //#region src/lib/utils/format.ts
 function formatDate(value) {
 	if (!value) return "N/A";
@@ -160,56 +144,45 @@ function prettyJson(value) {
 	if (value === void 0) return "";
 	return JSON.stringify(value, null, 2);
 }
-function normalizeLogEntries(raw) {
-	if (!Array.isArray(raw)) return [];
-	return raw.filter((item) => typeof item === "object" && item !== null);
-}
 function slugFromName(name) {
 	return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
 }
 //#endregion
 //#region src/lib/api/mock.ts
 var mock_exports = /* @__PURE__ */ __exportAll({
+	executeTask: () => executeTask$1,
 	getFlow: () => getFlow$1,
 	getFlowMock: () => getFlowMock,
 	getMe: () => getMe$1,
 	getMeMock: () => getMeMock,
 	getRun: () => getRun$1,
-	getRunLogsWebSocketUrl: () => getRunLogsWebSocketUrl$1,
 	getRunMock: () => getRunMock,
 	listFlows: () => listFlows$1,
 	listFlowsMock: () => listFlowsMock,
+	listTasks: () => listTasks$1,
+	listTasksMock: () => listTasksMock,
 	loginUser: () => loginUser,
 	loginUserMock: () => loginUserMock,
 	logoutUser: () => logoutUser,
 	logoutUserMock: () => logoutUserMock,
-	parseLogMessage: () => parseLogMessage$1,
+	parseLogMessage: () => parseLogMessage,
 	registerUser: () => registerUser,
 	registerUserMock: () => registerUserMock,
 	saveFlow: () => saveFlow,
 	saveFlowMock: () => saveFlowMock,
-	triggerRun: () => triggerRun,
-	triggerRunMock: () => triggerRunMock
+	saveRun: () => saveRun,
+	saveRunMock: () => saveRunMock
 });
 var now = () => (/* @__PURE__ */ new Date()).toISOString();
 var flows = /* @__PURE__ */ new Map([["demo-flow", {
 	id: "demo-flow",
 	name: "demo-flow",
 	created_at: now(),
-	dsl_script: JSON.stringify({
-		flow_id: "demo-flow",
-		name: "Demo flow",
-		steps: [{
-			id: "read_manual_trigger",
-			type: "manual_trigger",
-			with: { message: "Demo input" }
-		}, {
-			id: "scrape_page",
-			type: "web_scraper",
-			needs: ["read_manual_trigger"],
-			with: { url: "https://example.com" }
-		}]
-	}, null, 2)
+	dsl_script: `import { task } from '@symflow/runtime';
+
+export async function main(input: { url?: string }) {
+  return task('web_scraper', { url: input.url ?? 'https://example.com' });
+}`
 }]]);
 var runs = /* @__PURE__ */ new Map();
 var currentUser = {
@@ -222,49 +195,6 @@ function toSummary(flow) {
 		id: flow.id,
 		name: flow.name,
 		created_at: flow.created_at
-	};
-}
-function newRun(flowId) {
-	const id = `run-${Math.random().toString(36).slice(2, 10)}`;
-	const created_at = now();
-	return {
-		id,
-		flow_id: flowId,
-		status: "RUNNING",
-		initial_inputs: { input: "example" },
-		created_at,
-		finished_at: null,
-		steps: [{
-			run_id: id,
-			step_id: "read_manual_trigger",
-			status: "COMPLETED",
-			resolved_inputs: { prompt: "Demo input" },
-			outputs: { prompt: "Demo input" },
-			agent_logs: [{
-				type: "thought",
-				text: "Received user prompt.",
-				stepId: "read_manual_trigger",
-				iter: 1,
-				timestamp: created_at
-			}],
-			executed_at: created_at
-		}, {
-			run_id: id,
-			step_id: "scrape_page",
-			status: "RUNNING",
-			resolved_inputs: { url: "https://example.com" },
-			outputs: null,
-			error: null,
-			agent_logs: [{
-				type: "action",
-				tool: "web_scraper",
-				text: "Fetching https://example.com",
-				stepId: "scrape_page",
-				iter: 2,
-				timestamp: created_at
-			}],
-			executed_at: created_at
-		}]
 	};
 }
 async function listFlowsMock() {
@@ -286,62 +216,38 @@ async function saveFlowMock(payload) {
 	const saved = {
 		id,
 		name: payload.name,
-		dsl_script: formatJsonDsl(payload.dsl_script),
+		dsl_script: payload.dsl_script,
 		created_at: existing?.created_at ?? now()
 	};
 	flows.set(id, saved);
 	return saved;
 }
 var saveFlow = saveFlowMock;
-async function triggerRunMock(flowId) {
+async function saveRunMock(payload) {
 	await delay();
-	const run = newRun(flowId);
+	const run = {
+		id: `run-${Math.random().toString(36).slice(2, 10)}`,
+		flow_id: payload.flow_id,
+		status: payload.status,
+		initial_inputs: payload.initial_input,
+		output: payload.output,
+		execution_logs: payload.logs,
+		error: payload.error,
+		created_at: now(),
+		finished_at: now()
+	};
 	runs.set(run.id, run);
 	return run;
 }
-var triggerRun = triggerRunMock;
+var saveRun = saveRunMock;
 async function getRunMock(runId) {
 	await delay(120);
 	const run = runs.get(runId);
 	if (!run) throw new Error(`Run ${runId} not found`);
-	if (run.status === "RUNNING" && run.steps?.[1]?.status === "RUNNING") {
-		run.steps[1] = {
-			...run.steps[1],
-			status: "COMPLETED",
-			outputs: {
-				title: "Example Domain",
-				word_count: 32
-			},
-			executed_at: now(),
-			agent_logs: [
-				...Array.isArray(run.steps[1].agent_logs) ? run.steps[1].agent_logs : [],
-				{
-					type: "observation",
-					text: "Page fetched successfully.",
-					stepId: "scrape_page",
-					iter: 3,
-					timestamp: now()
-				},
-				{
-					type: "finalAnswer",
-					text: "Completed all steps.",
-					stepId: "scrape_page",
-					iter: 4,
-					timestamp: now()
-				}
-			]
-		};
-		run.status = "SUCCESS";
-		run.finished_at = now();
-		runs.set(runId, run);
-	}
 	return run;
 }
 var getRun$1 = getRunMock;
-function getRunLogsWebSocketUrl$1(_runId) {
-	return "";
-}
-function parseLogMessage$1(data) {
+function parseLogMessage(data) {
 	return JSON.parse(data);
 }
 async function registerUserMock(payload) {
@@ -373,6 +279,134 @@ async function getMeMock() {
 	return currentUser;
 }
 var getMe$1 = getMeMock;
+var mockTasks = [
+	{
+		name: "web_scraper",
+		label: "Web Scraper",
+		description: "Fetch a web page.",
+		category: "data",
+		runtime: "remote",
+		input_schema: {
+			type: "object",
+			properties: { url: { type: "string" } },
+			required: ["url"]
+		},
+		output_schema: {
+			type: "object",
+			properties: {
+				html: { type: "string" },
+				raw_text: { type: "string" }
+			},
+			required: ["html", "raw_text"]
+		}
+	},
+	{
+		name: "local_file_reader",
+		label: "Local File Reader",
+		description: "Read a sandbox file.",
+		category: "storage",
+		runtime: "remote",
+		input_schema: {
+			type: "object",
+			properties: { path: { type: "string" } },
+			required: ["path"]
+		},
+		output_schema: {
+			type: "object",
+			properties: { content: { type: "string" } },
+			required: ["content"]
+		}
+	},
+	{
+		name: "ai_agent",
+		label: "AI Agent",
+		description: "Complete a goal with an LLM.",
+		category: "ai",
+		runtime: "remote",
+		input_schema: {
+			type: "object",
+			properties: {
+				model: { type: "string" },
+				goal: { type: "string" },
+				context: {}
+			},
+			required: ["goal"]
+		},
+		output_schema: {
+			type: "object",
+			properties: { result: { type: "string" } },
+			required: ["result"]
+		}
+	},
+	{
+		name: "pdf_report",
+		label: "PDF Report",
+		description: "Create a small PDF file.",
+		category: "documents",
+		runtime: "remote",
+		input_schema: {
+			type: "object",
+			properties: {
+				title: { type: "string" },
+				content: { type: "string" },
+				rows: {
+					type: "array",
+					items: { type: "object" }
+				},
+				csv: { type: "string" },
+				filename: { type: "string" }
+			},
+			required: ["title"]
+		},
+		output_schema: {
+			type: "object",
+			properties: {
+				filename: { type: "string" },
+				path: { type: "string" },
+				size_bytes: { type: "integer" },
+				content_base64: { type: "string" }
+			},
+			required: [
+				"filename",
+				"path",
+				"size_bytes",
+				"content_base64"
+			]
+		}
+	}
+];
+async function listTasksMock() {
+	await delay(20);
+	return mockTasks;
+}
+var listTasks$1 = listTasksMock;
+async function executeTask$1(name, input) {
+	await delay(20);
+	if (name === "web_scraper") return {
+		url: input.url,
+		raw_text: "Mock page",
+		html: "<p>Mock page</p>"
+	};
+	if (name === "local_file_reader") return {
+		path: input.path,
+		content: "Mock file",
+		size: 9
+	};
+	if (name === "ai_agent") return { result: JSON.stringify({
+		title: "Mock article",
+		summary: "Mock summary",
+		author: "Mock author",
+		published_at: (/* @__PURE__ */ new Date()).toISOString(),
+		category: "Mock category"
+	}) };
+	if (name === "pdf_report") return {
+		filename: input.filename ?? "report.pdf",
+		path: "/tmp/report.pdf",
+		size_bytes: 1024,
+		content_base64: "JVBERi0xLjQKMSAwIG9iago8PCAvVHlwZSAvQ2F0YWxvZyAvUGFnZXMgMiAwIFIgPj4KZW5kb2JqCjIgMCBvYmoKPDwgL1R5cGUgL1BhZ2VzIC9LaWRzIFszIDAgUl0gL0NvdW50IDEgPj4KZW5kb2JqCjMgMCBvYmoKPDwgL1R5cGUgL1BhZ2UgL1BhcmVudCAyIDAgUiAvTWVkaWFCb3ggWzAgMCA2MTIgNzkyXSAvQ29udGVudHMgNCAwIFIgL1Jlc291cmNlcyA8PCAvRm9udCA8PCAvRjEgNSAwIFIgPj4gPj4gPj4KZW5kb2JqCjQgMCBvYmoKPDwgL0xlbmd0aCAxMDEgPj4Kc3RyZWFtCkJUCi9GMSAxOCBUZgo3MiA3NjAgVGQKKE1vY2sgUERGIHJlcG9ydCkgVGoKRVQKQlQKL0YxIDExIFRmCjcyIDc0MCBUZAooR2VuZXJhdGVkIGluIG1vY2sgbW9kZSkgVGoKRVQKZW5kc3RyZWFtCmVuZG9iago1IDAgb2JqCjw8IC9UeXBlIC9Gb250IC9TdWJ0eXBlIC9UeXBlMSAvQmFzZUZvbnQgL0hlbHZldGljYSA+PgplbmRvYmoKeHJlZgowIDYKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAowMDAwMDAwMjQxIDAwMDAwIG4gCjAwMDAwMDAzOTIgMDAwMDAgbiAKdHJhaWxlcgo8PCAvU2l6ZSA2IC9Sb290IDEgMCBSID4+CnN0YXJ0eHJlZgo0NjIKJSVFT0YK"
+	};
+	throw new Error(`Task ${name} not found`);
+}
 //#endregion
 //#region src/lib/api/mode.ts
 function resolveApiMode(env = {
@@ -417,17 +451,17 @@ async function listFlows(fetchImpl = fetch) {
 async function getFlow(id, fetchImpl = fetch) {
 	return api.getFlow(id, fetchImpl);
 }
+async function executeTask(name, input, fetchImpl = fetch) {
+	return api.executeTask(name, input, fetchImpl);
+}
 async function getRun(runId, fetchImpl = fetch) {
 	return api.getRun(runId, fetchImpl);
 }
-function getRunLogsWebSocketUrl(runId) {
-	return api.getRunLogsWebSocketUrl(runId);
-}
-function parseLogMessage(data) {
-	return api.parseLogMessage(data);
+async function listTasks(fetchImpl = fetch) {
+	return api.listTasks(fetchImpl);
 }
 async function getMe(fetchImpl = fetch) {
 	return api.getMe(fetchImpl);
 }
 //#endregion
-export { listFlows as a, normalizeLogEntries as c, parseJsonDsl as d, ApiError as f, getRunLogsWebSocketUrl as i, prettyJson as l, getMe as n, parseLogMessage as o, getRun as r, formatDate as s, getFlow as t, DEFAULT_FLOW_DSL as u };
+export { listFlows as a, prettyJson as c, getRun as i, ApiError as l, getFlow as n, listTasks as o, getMe as r, formatDate as s, executeTask as t };

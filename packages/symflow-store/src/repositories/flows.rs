@@ -47,15 +47,6 @@ pub async fn list_flows(pool: &PgPool) -> Result<Vec<FlowSummary>, StoreError> {
 pub async fn delete_flow(pool: &PgPool, id: &str) -> Result<bool, StoreError> {
     let mut tx = pool.begin().await.map_err(backend_err)?;
 
-    sqlx::query(
-        "DELETE FROM step_executions \
-         WHERE run_id IN (SELECT id FROM flow_runs WHERE flow_id = $1)",
-    )
-    .bind(id)
-    .execute(&mut *tx)
-    .await
-    .map_err(backend_err)?;
-
     sqlx::query("DELETE FROM flow_runs WHERE flow_id = $1")
         .bind(id)
         .execute(&mut *tx)

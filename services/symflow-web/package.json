@@ -24,6 +24,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
-    "@xyflow/svelte": "^1.6.2"
+    "@symflow/runtime": "file:../../packages/symflow-runtime",
+    "monaco-editor": "^0.52.2"
   }
 }

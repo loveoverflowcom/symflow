@@ -22,3 +22,4 @@ petgraph     = { workspace = true }
 reqwest      = { workspace = true }
 scraper      = { workspace = true }
 lopdf        = { workspace = true }
+futures-util = "0.3"

@@ -31,7 +31,7 @@
 		"src/routes/runs/[id]/+page.ts",
 		"src/routes/+layout.ts"
 	],
-	"/skills": [
+	"/settings": [
 		"src/routes/+layout.ts"
 	]
 }

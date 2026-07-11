@@ -1,18 +1,18 @@
 import { _ as noop, a as split_remote_key, f as get_status, g as text_encoder, h as get_relative_path, i as parse_remote_arg, m as base64_encode, n as TRAILING_SLASH_PARAM, o as stringify, p as normalize_error, r as create_remote_key, t as INVALIDATED_PARAM, v as once } from "./chunks/shared.js";
-import { a as public_env, c as app_dir, d as override, f as reset, l as assets, o as set_private_env, s as set_public_env, u as base } from "./chunks/internal.js";
-import { E as ENDPOINT_METHODS, O as PAGE_METHODS, _ as is_form_content_type, a as get_global_name, c as handle_fatal_error, d as redirect_response, f as serialize_uses, g as get_set_cookies, h as s, i as format_server_error, l as has_prerendered_path, m as escape_html, o as get_node_type, p as static_error_page, r as create_replacer, s as handle_error_and_jsonify, t as clarify_devalue_error, u as method_not_allowed, v as negotiate, x as deserialize_binary_form } from "./chunks/utils.js";
-import { _ as has_data_suffix, b as strip_resolution_suffix, d as make_trackable, f as normalize_path, g as add_resolution_suffix, h as add_data_suffix, i as validate_page_server_exports, l as decode_pathname, m as noop_span, n as validate_layout_server_exports, o as find_route, p as resolve, r as validate_page_exports, s as hash, t as validate_layout_exports, u as disable_search, v as has_resolution_suffix, x as compact, y as strip_data_suffix } from "./chunks/exports.js";
-import { C as readable, w as writable } from "./chunks/server.js";
+import { a as app_dir, c as override, l as reset, o as assets, s as base } from "./chunks/internal.js";
+import { D as PAGE_METHODS, T as ENDPOINT_METHODS, _ as negotiate, a as get_global_name, b as deserialize_binary_form, c as handle_fatal_error, d as redirect_response, f as serialize_uses, g as is_form_content_type, h as get_set_cookies, i as format_server_error, l as has_prerendered_path, m as escape_html, o as get_node_type, p as static_error_page, r as create_replacer, s as handle_error_and_jsonify, t as clarify_devalue_error, u as method_not_allowed } from "./chunks/utils.js";
+import { a as read_implementation, c as public_env, l as set_private_env, n as options, o as set_manifest, s as set_read_implementation, t as get_hooks, u as set_public_env } from "./chunks/internal2.js";
+import { d as make_trackable, f as normalize_path, i as validate_page_server_exports, l as decode_pathname, n as validate_layout_server_exports, o as find_route, p as resolve, r as validate_page_exports, s as hash, t as validate_layout_exports, u as disable_search } from "./chunks/exports.js";
+import { E as writable, T as readable } from "./chunks/server.js";
 import "./chunks/index-server.js";
 import "./chunks/env.js";
-import { a as set_manifest, i as read_implementation, n as options, o as set_read_implementation, t as get_hooks } from "./chunks/internal2.js";
 import { error, isRedirect, json, text } from "@sveltejs/kit";
 import { ActionFailure, HttpError, Redirect, SvelteKitError } from "@sveltejs/kit/internal";
 import { merge_tracing, with_request_store } from "@sveltejs/kit/internal/server";
 import * as set_cookie_parser from "set-cookie-parser";
 import * as devalue from "devalue";
 import { parse as parse$1, serialize } from "cookie";
-//#region node_modules/@sveltejs/kit/src/utils/promise.js
+//#region ../../node_modules/@sveltejs/kit/src/utils/promise.js
 /** @see https://github.com/microsoft/TypeScript/blob/904e7dd97dc8da1352c8e05d70829dff17c73214/src/lib/es2024.promise.d.ts */
 /**
 * @template T
@@ -41,7 +41,7 @@ function with_resolvers() {
 	};
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/constants.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/constants.js
 var NULL_BODY_STATUS = [
 	101,
 	103,
@@ -51,7 +51,10 @@ var NULL_BODY_STATUS = [
 ];
 var IN_WEBCONTAINER = !!globalThis.process?.versions?.webcontainer;
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/endpoint.js
+//#region ../../node_modules/@sveltejs/kit/src/utils/misc.js
+var s = JSON.stringify;
+//#endregion
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/endpoint.js
 /**
 * @param {import('@sveltejs/kit').RequestEvent} event
 * @param {import('types').RequestState} event_state
@@ -108,14 +111,117 @@ function is_endpoint_request(event) {
 	return negotiate(event.request.headers.get("accept") ?? "*/*", ["*", "text/html"]) !== "text/html";
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/telemetry/record_span.js
+//#region ../../node_modules/@sveltejs/kit/src/utils/array.js
+/**
+* Removes nullish values from an array.
+*
+* @template T
+* @param {Array<T>} arr
+*/
+function compact(arr) {
+	return arr.filter(
+		/** @returns {val is NonNullable<T>} */
+		(val) => val != null
+	);
+}
+//#endregion
+//#region ../../node_modules/@sveltejs/kit/src/runtime/pathname.js
+var DATA_SUFFIX = "/__data.json";
+var HTML_DATA_SUFFIX = ".html__data.json";
+/** @param {string} pathname */
+function has_data_suffix(pathname) {
+	return pathname.endsWith(DATA_SUFFIX) || pathname.endsWith(HTML_DATA_SUFFIX);
+}
+/** @param {string} pathname */
+function add_data_suffix(pathname) {
+	if (pathname.endsWith(".html")) return pathname.replace(/\.html$/, HTML_DATA_SUFFIX);
+	return pathname.replace(/\/$/, "") + DATA_SUFFIX;
+}
+/** @param {string} pathname */
+function strip_data_suffix(pathname) {
+	if (pathname.endsWith(HTML_DATA_SUFFIX)) return pathname.slice(0, -16) + ".html";
+	return pathname.slice(0, -12);
+}
+var ROUTE_SUFFIX = "/__route.js";
+/**
+* @param {string} pathname
+* @returns {boolean}
+*/
+function has_resolution_suffix(pathname) {
+	return pathname.endsWith(ROUTE_SUFFIX);
+}
+/**
+* Convert a regular URL to a route to send to SvelteKit's server-side route resolution endpoint
+* @param {string} pathname
+* @returns {string}
+*/
+function add_resolution_suffix(pathname) {
+	return pathname.replace(/\/$/, "") + ROUTE_SUFFIX;
+}
+/**
+* @param {string} pathname
+* @returns {string}
+*/
+function strip_resolution_suffix(pathname) {
+	return pathname.slice(0, -11);
+}
+//#endregion
+//#region ../../node_modules/@sveltejs/kit/src/runtime/telemetry/noop.js
+/**
+* @type {Span}
+*/
+var noop_span = {
+	spanContext() {
+		return noop_span_context;
+	},
+	setAttribute() {
+		return this;
+	},
+	setAttributes() {
+		return this;
+	},
+	addEvent() {
+		return this;
+	},
+	setStatus() {
+		return this;
+	},
+	updateName() {
+		return this;
+	},
+	end() {
+		return this;
+	},
+	isRecording() {
+		return false;
+	},
+	recordException() {
+		return this;
+	},
+	addLink() {
+		return this;
+	},
+	addLinks() {
+		return this;
+	}
+};
+/**
+* @type {SpanContext}
+*/
+var noop_span_context = {
+	traceId: "",
+	spanId: "",
+	traceFlags: 0
+};
+//#endregion
+//#region ../../node_modules/@sveltejs/kit/src/runtime/telemetry/record_span.js
 /** @import { RecordSpan } from 'types' */
 /** @type {RecordSpan} */
 async function record_span({ name, attributes, fn }) {
 	return fn(noop_span);
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/page/actions.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/page/actions.js
 /** @import { RequestEvent, ActionResult, Actions } from '@sveltejs/kit' */
 /** @import { SSROptions, SSRNode, ServerNode, ServerHooks } from 'types' */
 /** @param {RequestEvent} event */
@@ -315,7 +421,7 @@ function try_serialize(data, fn, route_id) {
 	}
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/utils/streaming.js
+//#region ../../node_modules/@sveltejs/kit/src/utils/streaming.js
 /**
 * Create an async iterator and a function to push values into it
 * @template T
@@ -359,7 +465,7 @@ function create_async_iterator() {
 	};
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/page/data_serializer.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/page/data_serializer.js
 /**
 * If the serialized data contains promises, `chunks` will be an
 * async iterable containing their resolutions
@@ -518,7 +624,7 @@ function server_data_serializer_json(event, event_state, options) {
 	};
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/page/load_data.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/page/load_data.js
 /**
 * Calls the user's server `load` function.
 * @param {{
@@ -810,7 +916,7 @@ async function stream_to_string(stream) {
 	return result;
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/page/serialize_data.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/page/serialize_data.js
 /**
 * Inside a script element, only `<\/script` and `<!--` hold special meaning to the HTML parser.
 *
@@ -890,7 +996,7 @@ function serialize_data(fetched, filter, prerendering = false) {
 	return `<script ${attrs.join(" ")}>${safe_payload}<\/script>`;
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/page/crypto.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/page/crypto.js
 /**
 * SHA-256 hashing function adapted from https://bitwiseshiftleft.github.io/sjcl
 * modified and redistributed under BSD license
@@ -995,7 +1101,7 @@ function encode(str) {
 	return words;
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/page/csp.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/page/csp.js
 var array = /* @__PURE__ */ new Uint8Array(16);
 function generate_nonce() {
 	crypto.getRandomValues(array);
@@ -1203,7 +1309,7 @@ var Csp = class {
 	}
 };
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/page/server_routing.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/page/server_routing.js
 /** @import { SSRManifest } from '@sveltejs/kit' */
 /**
 * @param {import('types').SSRClientRoute} route
@@ -1299,7 +1405,7 @@ function create_css_import(route, url, client) {
 	return `${create_client_import(client.start, url)}.then(x => x.load_css([${css}]));`;
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/remote.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/remote.js
 /** @import { ActionResult, RemoteForm, RequestEvent, SSRManifest } from '@sveltejs/kit' */
 /** @import { RemoteFormInternals, RemoteFunctionData, RemoteFunctionResponse, RemoteInternals, RequestState, SSROptions } from 'types' */
 /** @type {typeof handle_remote_call_internal} */
@@ -1631,7 +1737,7 @@ function get_remote_action(url) {
 	return url.searchParams.get("/remote");
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/page/render.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/page/render.js
 var updated = {
 	...readable(false),
 	check: () => false
@@ -2050,7 +2156,7 @@ var Head = class {
 	}
 };
 //#endregion
-//#region node_modules/@sveltejs/kit/src/utils/page_nodes.js
+//#region ../../node_modules/@sveltejs/kit/src/utils/page_nodes.js
 var PageNodes = class {
 	/** All layout nodes and the page node, if any */
 	data;
@@ -2118,7 +2224,7 @@ var PageNodes = class {
 	}
 };
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/page/respond_with_error.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/page/respond_with_error.js
 /**
 * @typedef {import('./types.js').Loaded} Loaded
 */
@@ -2206,7 +2312,7 @@ async function respond_with_error({ event, event_state, options, manifest, state
 	}
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/page/index.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/page/index.js
 /** @import { ActionResult, RequestEvent, SSRManifest } from '@sveltejs/kit' */
 /** @import { PageNodeIndexes, RequestState, RequiredResolveOptions, ServerDataNode, SSRComponent, SSRNode, SSROptions, SSRState } from 'types' */
 /**
@@ -2469,7 +2575,7 @@ async function load_error_components(options, ssr, branch, page, manifest) {
 	return error_components;
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/data/index.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/data/index.js
 /**
 * @param {import('@sveltejs/kit').RequestEvent} event
 * @param {import('types').RequestState} event_state
@@ -2577,7 +2683,7 @@ function redirect_json_response(redirect) {
 	});
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/cookie.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/cookie.js
 var INVALID_COOKIE_CHARACTER_REGEX = /[\x00-\x1F\x7F()<>@,;:"/[\]?={} \t]/;
 /** @param {import('./page/types.js').Cookie['options']} options */
 function validate_options(options) {
@@ -2784,7 +2890,7 @@ function add_cookies_to_headers(headers, cookies) {
 	}
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/fetch.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/fetch.js
 /**
 * @param {{
 *   event: import('@sveltejs/kit').RequestEvent;
@@ -2912,7 +3018,7 @@ async function internal_fetch(request, options, manifest, state) {
 	});
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/env_module.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/env_module.js
 /** @type {string} */
 var payload;
 /** @type {string} */
@@ -2940,7 +3046,7 @@ function get_public_env(request) {
 	return new Response(`export const env=${payload}`, { headers });
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/respond.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/respond.js
 /** @import { RequestState, SSRNode } from 'types' */
 /** @type {import('types').RequiredResolveOptions['transformPageChunk']} */
 var default_transform = ({ html }) => html;
@@ -3400,7 +3506,7 @@ function propagate_context(fn) {
 	};
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/utils/env.js
+//#region ../../node_modules/@sveltejs/kit/src/utils/env.js
 /**
 * @param {Record<string, string>} env
 * @param {string} allowed
@@ -3411,7 +3517,7 @@ function filter_env(env, allowed, disallowed) {
 	return Object.fromEntries(Object.entries(env).filter(([k]) => k.startsWith(allowed) && (disallowed === "" || !k.startsWith(disallowed))));
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/server/index.js
+//#region ../../node_modules/@sveltejs/kit/src/runtime/server/index.js
 /** @import { PromiseWithResolvers } from '../../utils/promise.js' */
 /** @type {Promise<any>} */
 var init_promise;

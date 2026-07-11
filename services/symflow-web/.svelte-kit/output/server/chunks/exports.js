@@ -1,107 +1,4 @@
-//#region node_modules/@sveltejs/kit/src/utils/array.js
-/**
-* Removes nullish values from an array.
-*
-* @template T
-* @param {Array<T>} arr
-*/
-function compact(arr) {
-	return arr.filter(
-		/** @returns {val is NonNullable<T>} */
-		(val) => val != null
-	);
-}
-//#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/pathname.js
-var DATA_SUFFIX = "/__data.json";
-var HTML_DATA_SUFFIX = ".html__data.json";
-/** @param {string} pathname */
-function has_data_suffix(pathname) {
-	return pathname.endsWith(DATA_SUFFIX) || pathname.endsWith(HTML_DATA_SUFFIX);
-}
-/** @param {string} pathname */
-function add_data_suffix(pathname) {
-	if (pathname.endsWith(".html")) return pathname.replace(/\.html$/, HTML_DATA_SUFFIX);
-	return pathname.replace(/\/$/, "") + DATA_SUFFIX;
-}
-/** @param {string} pathname */
-function strip_data_suffix(pathname) {
-	if (pathname.endsWith(HTML_DATA_SUFFIX)) return pathname.slice(0, -16) + ".html";
-	return pathname.slice(0, -12);
-}
-var ROUTE_SUFFIX = "/__route.js";
-/**
-* @param {string} pathname
-* @returns {boolean}
-*/
-function has_resolution_suffix(pathname) {
-	return pathname.endsWith(ROUTE_SUFFIX);
-}
-/**
-* Convert a regular URL to a route to send to SvelteKit's server-side route resolution endpoint
-* @param {string} pathname
-* @returns {string}
-*/
-function add_resolution_suffix(pathname) {
-	return pathname.replace(/\/$/, "") + ROUTE_SUFFIX;
-}
-/**
-* @param {string} pathname
-* @returns {string}
-*/
-function strip_resolution_suffix(pathname) {
-	return pathname.slice(0, -11);
-}
-//#endregion
-//#region node_modules/@sveltejs/kit/src/runtime/telemetry/noop.js
-/**
-* @type {Span}
-*/
-var noop_span = {
-	spanContext() {
-		return noop_span_context;
-	},
-	setAttribute() {
-		return this;
-	},
-	setAttributes() {
-		return this;
-	},
-	addEvent() {
-		return this;
-	},
-	setStatus() {
-		return this;
-	},
-	updateName() {
-		return this;
-	},
-	end() {
-		return this;
-	},
-	isRecording() {
-		return false;
-	},
-	recordException() {
-		return this;
-	},
-	addLink() {
-		return this;
-	},
-	addLinks() {
-		return this;
-	}
-};
-/**
-* @type {SpanContext}
-*/
-var noop_span_context = {
-	traceId: "",
-	spanId: "",
-	traceFlags: 0
-};
-//#endregion
-//#region node_modules/@sveltejs/kit/src/utils/url.js
+//#region ../../node_modules/@sveltejs/kit/src/utils/url.js
 /**
 * Matches a URI scheme. See https://www.rfc-editor.org/rfc/rfc3986#section-3.1
 * @type {RegExp}
@@ -221,7 +118,7 @@ function allow_nodejs_console_log(url) {
 	};
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/utils/hash.js
+//#region ../../node_modules/@sveltejs/kit/src/utils/hash.js
 /**
 * Hash using djb2
 * @param {import('types').StrictBody[]} values
@@ -239,7 +136,7 @@ function hash(...values) {
 	return (hash >>> 0).toString(36);
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/utils/routing.js
+//#region ../../node_modules/@sveltejs/kit/src/utils/routing.js
 /**
 * @param {RegExpMatchArray} match
 * @param {import('types').RouteParam[]} params
@@ -298,7 +195,7 @@ function find_route(path, routes, matchers) {
 	return null;
 }
 //#endregion
-//#region node_modules/@sveltejs/kit/src/utils/exports.js
+//#region ../../node_modules/@sveltejs/kit/src/utils/exports.js
 /**
 * @param {Set<string>} expected
 */
@@ -367,4 +264,4 @@ var validate_layout_server_exports = validator(valid_layout_server_exports);
 var validate_page_server_exports = validator(valid_page_server_exports);
 var validate_server_exports = validator(valid_server_exports);
 //#endregion
-export { has_data_suffix as _, validate_server_exports as a, strip_resolution_suffix as b, SCHEME as c, make_trackable as d, normalize_path as f, add_resolution_suffix as g, add_data_suffix as h, validate_page_server_exports as i, decode_pathname as l, noop_span as m, validate_layout_server_exports as n, find_route as o, resolve as p, validate_page_exports as r, hash as s, validate_layout_exports as t, disable_search as u, has_resolution_suffix as v, compact as x, strip_data_suffix as y };
+export { validate_server_exports as a, SCHEME as c, make_trackable as d, normalize_path as f, validate_page_server_exports as i, decode_pathname as l, validate_layout_server_exports as n, find_route as o, resolve as p, validate_page_exports as r, hash as s, validate_layout_exports as t, disable_search as u };

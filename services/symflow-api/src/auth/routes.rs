@@ -321,8 +321,9 @@ mod tests {
             "POST",
             "/api/flows",
             Some(json!({
+                "id": "protected",
                 "name": "Protected",
-                "dsl_script": "{\"flow_id\":\"protected\",\"steps\":[]}"
+                "dsl_script": "export async function main() { return {}; }"
             })),
             None,
         )
@@ -347,8 +348,9 @@ mod tests {
             "POST",
             "/api/flows",
             Some(json!({
+                "id": "protected",
                 "name": "Protected",
-                "dsl_script": "{\"flow_id\":\"protected\",\"steps\":[]}"
+                "dsl_script": "export async function main() { return {}; }"
             })),
             Some(&cookie),
         )

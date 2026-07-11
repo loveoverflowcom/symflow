@@ -3,9 +3,10 @@
 use crate::error::AgentError;
 use once_cell::sync::Lazy;
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 
 const DEFAULT_BASE_URL: &str = "https://api.openai.com/v1";
-const DEFAULT_MAX_TOKENS: u32 = 100;
+const DEFAULT_MAX_TOKENS: u32 = 512;
 const DEFAULT_TEMPERATURE: f32 = 0.2;
 
 static HTTP: Lazy<reqwest::Client> = Lazy::new(|| {
@@ -21,6 +22,20 @@ struct ChatRequest<'a> {
     messages: &'a [Message],
     max_tokens: u32,
     temperature: f32,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    response_format: Option<ResponseFormat>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    chat_template_kwargs: Option<ChatTemplateKwargs>,
+}
+
+#[derive(Debug, Serialize)]
+struct ResponseFormat {
+    r#type: &'static str,
+}
+
+#[derive(Debug, Serialize)]
+struct ChatTemplateKwargs {
+    enable_thinking: bool,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
@@ -39,11 +54,29 @@ struct Choice {
 }
 
 pub async fn chat(model: &str, messages: &[Message]) -> Result<String, AgentError> {
+    chat_with_options(model, messages, false).await
+}
+
+/// Request a JSON object from an OpenAI-compatible chat endpoint.
+///
+/// Qwen3 models enable thinking by default. With a small completion budget that
+/// can consume every token before the model emits its answer, so JSON requests
+/// explicitly disable thinking.
+pub async fn chat_json(model: &str, messages: &[Message]) -> Result<String, AgentError> {
+    chat_with_options(model, messages, true).await
+}
+
+async fn chat_with_options(
+    model: &str,
+    messages: &[Message],
+    json_mode: bool,
+) -> Result<String, AgentError> {
     let api_key = required_env("LLM_API_KEY")?;
     let model = selected_model(model)?;
     let base_url = env_or_default("LLM_BASE_URL", DEFAULT_BASE_URL);
     let max_tokens = env_u32_or_default("LLM_MAX_TOKENS", DEFAULT_MAX_TOKENS)?;
     let temperature = env_f32_or_default("LLM_TEMPERATURE", DEFAULT_TEMPERATURE)?;
+    let disable_qwen_thinking = json_mode && model.starts_with("Qwen/");
 
     let resp = HTTP
         .post(format!("{base_url}/chat/completions"))
@@ -54,6 +87,12 @@ pub async fn chat(model: &str, messages: &[Message]) -> Result<String, AgentErro
             messages,
             max_tokens,
             temperature,
+            response_format: json_mode.then_some(ResponseFormat {
+                r#type: "json_object",
+            }),
+            chat_template_kwargs: disable_qwen_thinking.then_some(ChatTemplateKwargs {
+                enable_thinking: false,
+            }),
         })
         .send()
         .await
@@ -62,7 +101,10 @@ pub async fn chat(model: &str, messages: &[Message]) -> Result<String, AgentErro
     if !resp.status().is_success() {
         let status = resp.status();
         let text = resp.text().await.unwrap_or_default();
-        return Err(AgentError::Llm(format!("HTTP {status}: {text}")));
+        return Err(AgentError::Llm(format!(
+            "HTTP {status}: {}",
+            summarize_error_body(&text)
+        )));
     }
 
     let parsed: ChatResponse = resp
@@ -134,4 +176,85 @@ fn env_f32_or_default(name: &str, default: f32) -> Result<f32, AgentError> {
             .map_err(|e| AgentError::Llm(format!("{name} must be a number: {e}"))),
         None => Ok(default),
     }
+}
+
+fn summarize_error_body(body: &str) -> String {
+    let trimmed = body.trim();
+    if trimmed.is_empty() {
+        return "empty response body".to_string();
+    }
+
+    if let Ok(json) = serde_json::from_str::<Value>(trimmed) {
+        if let Some(summary) = summarize_json_error(&json) {
+            return summary;
+        }
+        return preview_text(trimmed, 600);
+    }
+
+    preview_text(trimmed, 600)
+}
+
+fn summarize_json_error(value: &Value) -> Option<String> {
+    if let Some(error) = value.get("error") {
+        if let Some(summary) = summarize_json_error_entry(error) {
+            return Some(summary);
+        }
+    }
+
+    summarize_json_error_entry(value)
+}
+
+fn summarize_json_error_entry(value: &Value) -> Option<String> {
+    match value {
+        Value::String(text) => Some(text.clone()),
+        Value::Object(map) => {
+            let mut parts = Vec::new();
+
+            if let Some(message) = map.get("message").and_then(json_text) {
+                parts.push(message);
+            } else if let Some(message) = map.get("error").and_then(json_text) {
+                parts.push(message);
+            }
+
+            if let Some(kind) = map.get("type").and_then(json_text) {
+                parts.push(format!("type={kind}"));
+            }
+            if let Some(code) = map.get("code").and_then(json_text) {
+                parts.push(format!("code={code}"));
+            }
+            if let Some(param) = map.get("param").and_then(json_text) {
+                parts.push(format!("param={param}"));
+            }
+
+            if parts.is_empty() {
+                Some(value.to_string())
+            } else {
+                Some(parts.join(", "))
+            }
+        }
+        _ => json_text(value),
+    }
+}
+
+fn json_text(value: &Value) -> Option<String> {
+    match value {
+        Value::Null => Some("null".to_string()),
+        Value::Bool(value) => Some(value.to_string()),
+        Value::Number(value) => Some(value.to_string()),
+        Value::String(value) => Some(value.clone()),
+        _ => Some(value.to_string()),
+    }
+}
+
+fn preview_text(text: &str, limit: usize) -> String {
+    let compact = text.split_whitespace().collect::<Vec<_>>().join(" ");
+    let total = compact.chars().count();
+    let mut preview = String::new();
+    for ch in compact.chars().take(limit) {
+        preview.push(ch);
+    }
+    if total > limit {
+        preview.push_str("...");
+    }
+    preview
 }

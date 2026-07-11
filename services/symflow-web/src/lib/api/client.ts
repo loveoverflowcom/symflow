@@ -2,7 +2,7 @@ import * as httpApi from '$lib/api/http';
 import * as authHttpApi from '$lib/api/auth';
 import * as mockApi from '$lib/api/mock';
 import { resolveApiMode, type ApiEnv, type ApiMode } from '$lib/api/mode';
-import type { AgentLogEvent, FlowDetail, FlowRun, FlowSummary, FlowUpsertPayload } from '$lib/types/symflow';
+import type { AgentLogEvent, FlowDetail, FlowRun, FlowSummary, FlowUpsertPayload, SaveRunPayload, TaskMeta } from '$lib/types/symflow';
 import type { AuthUser, LoginPayload, RegisterPayload } from '$lib/auth/types';
 
 export type { ApiMode } from '$lib/api/mode';
@@ -12,9 +12,10 @@ type ApiClient = {
   listFlows: typeof httpApi.listFlows;
   getFlow: typeof httpApi.getFlow;
   saveFlow: typeof httpApi.saveFlow;
-  triggerRun: typeof httpApi.triggerRun;
+  saveRun: typeof httpApi.saveRun;
+  executeTask: typeof httpApi.executeTask;
   getRun: typeof httpApi.getRun;
-  getRunLogsWebSocketUrl: typeof httpApi.getRunLogsWebSocketUrl;
+  listTasks: typeof httpApi.listTasks;
   parseLogMessage: typeof httpApi.parseLogMessage;
   registerUser: typeof authHttpApi.registerUser;
   loginUser: typeof authHttpApi.loginUser;
@@ -45,20 +46,20 @@ export async function saveFlow(payload: FlowUpsertPayload, fetchImpl: typeof fet
   return api.saveFlow(payload, fetchImpl);
 }
 
-export async function triggerRun(
-  flowId: string,
-  inputs: unknown,
-  fetchImpl: typeof fetch = fetch
-): Promise<FlowRun> {
-  return api.triggerRun(flowId, inputs, fetchImpl);
+export async function saveRun(payload: SaveRunPayload, fetchImpl: typeof fetch = fetch): Promise<FlowRun> {
+  return api.saveRun(payload, fetchImpl);
+}
+
+export async function executeTask(name: string, input: unknown, fetchImpl: typeof fetch = fetch): Promise<unknown> {
+  return api.executeTask(name, input, fetchImpl);
 }
 
 export async function getRun(runId: string, fetchImpl: typeof fetch = fetch): Promise<FlowRun> {
   return api.getRun(runId, fetchImpl);
 }
 
-export function getRunLogsWebSocketUrl(runId: string): string {
-  return api.getRunLogsWebSocketUrl(runId);
+export async function listTasks(fetchImpl: typeof fetch = fetch): Promise<TaskMeta[]> {
+  return api.listTasks(fetchImpl);
 }
 
 export function parseLogMessage(data: string): AgentLogEvent {
