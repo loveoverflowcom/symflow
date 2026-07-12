@@ -4,13 +4,14 @@ export const DEFAULT_WORKFLOW_SOURCE = `import {
   idCardOcr,
   pdfReport,
 } from '@symflow/runtime';
+import type { WorkflowFile } from '@symflow/runtime';
 
 export interface Input {
-  /** URL, base64, or data URL of the CCCD image */
-  image: string;
+  /** Choose a CCCD image file, or pass a URL in code mode. */
+  image: WorkflowFile;
 
-  /** URL, base64, or data URL of the DOCX template */
-  template: string;
+  /** Choose a DOCX template file, or pass a URL/base64 value in code mode. */
+  template: WorkflowFile;
 }
 
 export async function main(input: Input) {

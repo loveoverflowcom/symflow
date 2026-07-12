@@ -10,6 +10,8 @@ pub struct FlowUpsertRequest {
     #[serde(default)]
     pub name: Option<String>,
     pub dsl_script: String,
+    #[serde(default)]
+    pub graph: Option<Value>,
 }
 
 #[derive(Debug, Clone, Deserialize)]

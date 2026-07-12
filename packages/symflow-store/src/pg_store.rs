@@ -26,8 +26,14 @@ impl PgStore {
 
 #[async_trait]
 impl Store for PgStore {
-    async fn upsert_flow(&self, id: &str, name: &str, dsl_script: &str) -> Result<(), StoreError> {
-        flows::upsert_flow(&self.pool, id, name, dsl_script).await
+    async fn upsert_flow(
+        &self,
+        id: &str,
+        name: &str,
+        dsl_script: &str,
+        graph: Option<&Value>,
+    ) -> Result<(), StoreError> {
+        flows::upsert_flow(&self.pool, id, name, dsl_script, graph).await
     }
 
     async fn get_flow(&self, id: &str) -> Result<Option<FlowRecord>, StoreError> {

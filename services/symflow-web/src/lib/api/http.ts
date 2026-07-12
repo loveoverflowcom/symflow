@@ -58,6 +58,14 @@ export async function saveFlow(payload: FlowUpsertPayload, fetchImpl: typeof fet
   return parseResponse<FlowDetail>(response);
 }
 
+export async function deleteFlow(id: string, fetchImpl: typeof fetch = fetch): Promise<void> {
+  const response = await fetchImpl(createUrl(`/api/flows/${encodeURIComponent(id)}`), {
+    method: 'DELETE',
+    credentials: 'include'
+  });
+  await parseResponse<void>(response);
+}
+
 export async function saveRun(
   payload: SaveRunPayload,
   fetchImpl: typeof fetch = fetch

@@ -13,6 +13,9 @@
 # Local runtime / storage
 services/symflow-api/data/storage_sandbox/*
 !services/symflow-api/data/storage_sandbox/.gitkeep
+services/symflow-files/uploads/*
+!services/symflow-files/uploads/.gitkeep
+/tmp/symflow-files.log
 
 # Node / SvelteKit
 node_modules/
@@ -40,3 +43,6 @@ coverage/
 .DS_Store
 *.swp
 *.swo
+
+# Draft
+/drafts/

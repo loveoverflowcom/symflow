@@ -12,6 +12,7 @@ type ApiClient = {
   listFlows: typeof httpApi.listFlows;
   getFlow: typeof httpApi.getFlow;
   saveFlow: typeof httpApi.saveFlow;
+  deleteFlow: typeof httpApi.deleteFlow;
   saveRun: typeof httpApi.saveRun;
   executeTask: typeof httpApi.executeTask;
   getRun: typeof httpApi.getRun;
@@ -44,6 +45,10 @@ export async function getFlow(id: string, fetchImpl: typeof fetch = fetch): Prom
 
 export async function saveFlow(payload: FlowUpsertPayload, fetchImpl: typeof fetch = fetch): Promise<FlowDetail> {
   return api.saveFlow(payload, fetchImpl);
+}
+
+export async function deleteFlow(id: string, fetchImpl: typeof fetch = fetch): Promise<void> {
+  return api.deleteFlow(id, fetchImpl);
 }
 
 export async function saveRun(payload: SaveRunPayload, fetchImpl: typeof fetch = fetch): Promise<FlowRun> {

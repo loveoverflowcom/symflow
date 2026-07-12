@@ -1,3 +1,5 @@
+import type { WorkflowGraph } from '@symflow/runtime';
+
 export type RunStatus = 'PENDING' | 'RUNNING' | 'SUCCESS' | 'FAILED';
 export type LogType = 'thought' | 'action' | 'observation' | 'finalAnswer' | 'runStatus' | string;
 
@@ -9,6 +11,7 @@ export interface FlowSummary {
 
 export interface FlowDetail extends FlowSummary {
   dsl_script: string;
+  graph?: WorkflowGraph;
 }
 
 export interface FlowRun {
@@ -68,4 +71,5 @@ export interface FlowUpsertPayload {
   id?: string;
   name: string;
   dsl_script: string;
+  graph?: WorkflowGraph;
 }

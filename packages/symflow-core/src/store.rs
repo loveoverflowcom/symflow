@@ -13,6 +13,7 @@ pub struct FlowRecord {
     pub id: String,
     pub name: String,
     pub dsl_script: String,
+    pub graph: Option<Value>,
     pub created_at: DateTime<Utc>,
 }
 
@@ -39,7 +40,13 @@ pub struct RunRecord {
 #[async_trait]
 pub trait Store: Send + Sync {
     // ---- flows ---
-    async fn upsert_flow(&self, id: &str, name: &str, dsl_script: &str) -> Result<(), StoreError>;
+    async fn upsert_flow(
+        &self,
+        id: &str,
+        name: &str,
+        dsl_script: &str,
+        graph: Option<&Value>,
+    ) -> Result<(), StoreError>;
     async fn get_flow(&self, id: &str) -> Result<Option<FlowRecord>, StoreError>;
     async fn list_flows(&self) -> Result<Vec<FlowSummary>, StoreError>;
     async fn delete_flow(&self, id: &str) -> Result<bool, StoreError>;

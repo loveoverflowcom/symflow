@@ -1,10 +1,12 @@
 import JSZip from 'jszip';
+import { isWorkflowFile, resolveFileAsBlob } from '../file';
+import type { WorkflowFile } from '../file';
 import type { TaskFn, TaskMeta } from '../types';
 
 type JsonObject = Record<string, unknown>;
 
 export interface DocxFillFieldsInput {
-  template: string;
+  template: WorkflowFile;
   values: JsonObject;
   mapping?: Record<string, string>;
 }
@@ -55,8 +57,8 @@ export const docxFillFields: TaskFn<DocxFillFieldsInput, DocxFillFieldsOutput> =
   if (!input || typeof input !== 'object') {
     throw new Error('docx_fill_fields expects an object input');
   }
-  if (typeof input.template !== 'string' || !input.template.trim()) {
-    throw new Error('docx_fill_fields.template must be a base64 or data URL .docx string');
+  if (!isWorkflowFile(input.template) || (typeof input.template === 'string' && !input.template.trim())) {
+    throw new Error('docx_fill_fields.template must be a File, Blob, URL, data URL, or base64 .docx string');
   }
   if (!input.values || typeof input.values !== 'object' || Array.isArray(input.values)) {
     throw new Error('docx_fill_fields.values must be an object');
@@ -115,7 +117,8 @@ export const docxFillFieldsMeta: TaskMeta = {
     properties: {
       template: {
         type: 'string',
-        description: 'Base64 or data URL of the .docx template.'
+        format: 'binary',
+        description: 'DOCX template file. URLs and base64 strings remain supported in code mode.'
       },
       values: {
         type: 'object',
@@ -581,7 +584,12 @@ function parseJsonObject(content: string): Record<string, unknown> | null {
   }
 }
 
-async function templateToBytes(input: string): Promise<Uint8Array> {
+async function templateToBytes(input: WorkflowFile): Promise<Uint8Array> {
+  if (typeof input !== 'string') {
+    const blob = await resolveFileAsBlob(input);
+    return new Uint8Array(await blob.arrayBuffer());
+  }
+
   const source = input.trim();
   if (/^blob:/i.test(source)) {
     return fetchBytes(source);

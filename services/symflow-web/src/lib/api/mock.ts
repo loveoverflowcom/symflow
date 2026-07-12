@@ -11,6 +11,7 @@ const flows = new Map<string, FlowDetail>([
       id: 'demo-flow',
       name: 'demo-flow',
       created_at: now(),
+      graph: undefined,
       dsl_script: `import { task } from '@symflow/runtime';
 
 export async function main(input: { url?: string }) {
@@ -60,6 +61,7 @@ export async function saveFlowMock(payload: FlowUpsertPayload): Promise<FlowDeta
     id,
     name: payload.name,
     dsl_script: payload.dsl_script,
+    graph: payload.graph,
     created_at: existing?.created_at ?? now()
   };
   flows.set(id, saved);
@@ -67,6 +69,13 @@ export async function saveFlowMock(payload: FlowUpsertPayload): Promise<FlowDeta
 }
 
 export const saveFlow = saveFlowMock;
+
+export async function deleteFlowMock(id: string): Promise<void> {
+  await delay();
+  if (!flows.delete(id)) throw new Error(`Flow ${id} not found`);
+}
+
+export const deleteFlow = deleteFlowMock;
 
 export async function saveRunMock(payload: SaveRunPayload): Promise<FlowRun> {
   await delay();

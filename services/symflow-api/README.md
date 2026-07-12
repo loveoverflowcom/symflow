@@ -11,6 +11,7 @@ HTTP API server cho Symflow.
 - Chuẩn hóa `dsl_script` thành pretty-printed JSON trước khi lưu
 - Trigger run nền bằng `symflow-core`
 - Stream log realtime qua WebSocket
+- Dev stack can also start `symflow-files` for public file uploads/downloads.
 
 ## Endpoints chính
 
@@ -97,7 +98,7 @@ Cài task runner một lần:
 cargo install --force cargo-make
 ```
 
-Chạy API local và tự bật Postgres bằng Compose. Task tự nhận `docker compose`, `podman-compose`, hoặc `podman compose`:
+Chạy API local trực tiếp bằng cargo:
 
 ```bash
 cd services/symflow-api

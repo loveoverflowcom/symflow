@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { getFlowMock, getRunMock, listFlowsMock, saveFlowMock, saveRunMock } from '../src/lib/api/mock';
+import { deleteFlowMock, getFlowMock, getRunMock, listFlowsMock, saveFlowMock, saveRunMock } from '../src/lib/api/mock';
 
 describe('mock api', () => {
   it('saves flows and makes them available to list/get calls', async () => {
@@ -34,5 +34,15 @@ describe('mock api', () => {
     const resolved = await getRunMock(run.id);
     expect(resolved.status).toBe('SUCCESS');
     expect(resolved.output).toEqual({ ok: true });
+  });
+
+  it('deletes a flow from the mock store', async () => {
+    const saved = await saveFlowMock({
+      name: 'Flow to delete',
+      dsl_script: 'export async function main() { return {}; }'
+    });
+
+    await deleteFlowMock(saved.id);
+    await expect(getFlowMock(saved.id)).rejects.toThrow(`Flow ${saved.id} not found`);
   });
 });

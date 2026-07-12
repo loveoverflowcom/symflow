@@ -22,7 +22,7 @@ export interface WorkflowInputSchema {
 }
 
 export interface FieldSchema {
-  type: 'string' | 'number' | 'boolean' | 'array';
+  type: 'string' | 'number' | 'boolean' | 'object' | 'array';
   format?: 'uri' | 'binary' | 'date';
   description?: string;
   items?: FieldSchema;
@@ -163,7 +163,7 @@ function fieldSchemaFromTypeNode(typeNode: TypeNode, propertyKey: string, source
       if (!item || item.format === 'binary' || item.type === 'array') return null;
       return { type: 'array', items: item };
     }
-    if (typeName === 'File' || typeName === 'Blob') {
+    if (typeName === 'File' || typeName === 'Blob' || typeName === 'WorkflowFile') {
       return { type: 'string', format: 'binary' };
     }
 
@@ -175,7 +175,7 @@ function fieldSchemaFromTypeNode(typeNode: TypeNode, propertyKey: string, source
   }
 
   const typeText = typeNode.getType().getText(typeNode, TypeFormatFlags.UseSingleQuotesForStringLiteralType);
-  if (typeText === 'File' || typeText === 'Blob') {
+  if (typeText === 'File' || typeText === 'Blob' || typeText === 'WorkflowFile') {
     return { type: 'string', format: 'binary' };
   }
 

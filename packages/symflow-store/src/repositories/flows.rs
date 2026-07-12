@@ -3,20 +3,23 @@ use crate::models::{FlowRow, FlowSummaryRow};
 use sqlx::PgPool;
 use symflow_core::error::StoreError;
 use symflow_core::store::{FlowRecord, FlowSummary};
+use serde_json::Value;
 
 pub async fn upsert_flow(
     pool: &PgPool,
     id: &str,
     name: &str,
     dsl_script: &str,
+    graph: Option<&Value>,
 ) -> Result<(), StoreError> {
     sqlx::query(
-        "INSERT INTO flows (id, name, dsl_script) VALUES ($1, $2, $3) \
-         ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, dsl_script = EXCLUDED.dsl_script",
+        "INSERT INTO flows (id, name, dsl_script, graph) VALUES ($1, $2, $3, $4) \
+         ON CONFLICT (id) DO UPDATE SET name = EXCLUDED.name, dsl_script = EXCLUDED.dsl_script, graph = EXCLUDED.graph",
     )
     .bind(id)
     .bind(name)
     .bind(dsl_script)
+    .bind(graph)
     .execute(pool)
     .await
     .map_err(backend_err)?;
@@ -25,7 +28,7 @@ pub async fn upsert_flow(
 
 pub async fn get_flow(pool: &PgPool, id: &str) -> Result<Option<FlowRecord>, StoreError> {
     let row = sqlx::query_as::<_, FlowRow>(
-        "SELECT id, name, dsl_script, created_at FROM flows WHERE id = $1",
+        "SELECT id, name, dsl_script, graph, created_at FROM flows WHERE id = $1",
     )
     .bind(id)
     .fetch_optional(pool)

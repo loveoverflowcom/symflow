@@ -5,7 +5,9 @@ const GEMINI_ENDPOINT_BASE = 'https://generativelanguage.googleapis.com/v1beta/m
 const DEFAULT_MODEL = 'gemini-flash-latest';
 const DEFAULT_PROXY_ENDPOINT = '/api/ocr/proxy';
 
-const EXTRACTION_PROMPT = `This is a Vietnamese national ID card (CCCD/CMND). Extract the following fields and return valid JSON only, with no additional text:
+const EXTRACTION_PROMPT = `This is a Vietnamese national ID card (CCCD/CMND). Extract every available value from the image and return one valid JSON object only, with no markdown or additional text.
+
+The keys in the JSON object are the source of truth for fields. Always include every key below, including full_name. If a value cannot be read, use null. Do not rename full_name to fullname or name, and do not put extracted values in a separate raw_text object.
 
 {
   "full_name": "...",
@@ -20,7 +22,28 @@ const EXTRACTION_PROMPT = `This is a Vietnamese national ID card (CCCD/CMND). Ex
   "id_type": "CCCD | CMND"
 }
 
-If a field cannot be read, set its value to null.`;
+Use the exact value from the card. Dates must use YYYY-MM-DD when possible. Normalize gender to Nam or Nữ and id_type to CCCD, CMND, PASSPORT, or UNKNOWN.`;
+
+const RESPONSE_SCHEMA = {
+  type: 'OBJECT',
+  properties: {
+    full_name: { type: 'STRING', nullable: true },
+    dob: { type: 'STRING', nullable: true },
+    gender: { type: 'STRING', nullable: true },
+    nationality: { type: 'STRING', nullable: true },
+    hometown: { type: 'STRING', nullable: true },
+    address: { type: 'STRING', nullable: true },
+    id_number: { type: 'STRING', nullable: true },
+    issue_date: { type: 'STRING', nullable: true },
+    expiry_date: { type: 'STRING', nullable: true },
+    id_type: {
+      type: 'STRING',
+      enum: ['CCCD', 'CMND', 'PASSPORT', 'UNKNOWN'],
+      nullable: true
+    }
+  },
+  required: ['full_name', 'dob', 'gender', 'nationality', 'hometown', 'address', 'id_number', 'issue_date', 'expiry_date', 'id_type']
+};
 
 export interface GeminiVisionProviderOptions {
   apiKey?: string;
@@ -64,7 +87,9 @@ export class GeminiVisionProvider implements OcrProvider {
           }
         ],
         generationConfig: {
-          response_mime_type: 'application/json'
+          responseMimeType: 'application/json',
+          responseSchema: RESPONSE_SCHEMA,
+          temperature: 0
         }
       })
     });
@@ -79,7 +104,7 @@ export class GeminiVisionProvider implements OcrProvider {
     const fields = parseModelResponse(content);
 
     return {
-      rawText: fields ? JSON.stringify(fields) : content,
+      rawText: content,
       words: [],
       averageConfidence: 0.95,
       engine: 'gemini-vision',
@@ -206,22 +231,42 @@ function parseJsonObject(content: string): Record<string, unknown> | null {
 }
 
 function normalizeFields(value: Record<string, unknown>): IdCardFields {
+  const rawFields = parseEmbeddedObject(value.raw_text);
+  const nestedFields = isRecord(value.fields) ? value.fields : {};
+  const source = { ...rawFields, ...value, ...nestedFields };
+
   return {
-    full_name: nullableString(value.full_name),
-    dob: nullableString(value.dob),
-    gender: normalizeGender(value.gender),
-    nationality: nullableString(value.nationality),
-    hometown: nullableString(value.hometown),
-    address: nullableString(value.address),
-    id_number: nullableString(value.id_number),
-    issue_date: nullableString(value.issue_date),
-    expiry_date: nullableString(value.expiry_date),
-    id_type: normalizeIdType(value.id_type)
+    full_name: nullableString(source.full_name ?? source.fullName ?? source.fullname),
+    dob: nullableString(source.dob),
+    gender: normalizeGender(source.gender),
+    nationality: nullableString(source.nationality),
+    hometown: nullableString(source.hometown),
+    address: nullableString(source.address),
+    id_number: nullableString(source.id_number),
+    issue_date: nullableString(source.issue_date),
+    expiry_date: nullableString(source.expiry_date),
+    id_type: normalizeIdType(source.id_type)
   };
 }
 
 function nullableString(value: unknown): string | undefined {
-  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+  if (typeof value !== 'string') return undefined;
+  const text = value.trim();
+  if (!text) return undefined;
+
+  // Recover values accidentally returned as fragments such as `"": "VIỆT NAM",`.
+  const malformedObjectValue = text.match(/:\s*["']([^"']+)["']\s*,?$/);
+  return (malformedObjectValue?.[1] ?? text).trim() || undefined;
+}
+
+function parseEmbeddedObject(value: unknown): Record<string, unknown> {
+  if (typeof value !== 'string') return {};
+  const parsed = parseJsonObject(value.trim());
+  return parsed ?? {};
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function normalizeGender(value: unknown): string | undefined {

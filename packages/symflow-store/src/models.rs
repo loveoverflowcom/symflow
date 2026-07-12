@@ -11,6 +11,7 @@ pub struct FlowRow {
     pub id: String,
     pub name: String,
     pub dsl_script: String,
+    pub graph: Option<Value>,
     pub created_at: DateTime<Utc>,
 }
 impl FlowRow {
@@ -19,6 +20,7 @@ impl FlowRow {
             id: self.id,
             name: self.name,
             dsl_script: self.dsl_script,
+            graph: self.graph,
             created_at: self.created_at,
         }
     }

@@ -126,15 +126,18 @@ async fn persist_flow(
         id,
         name,
         dsl_script,
+        graph,
     } = payload;
     if dsl_script.trim().is_empty() {
         return Err(ApiError::unprocessable("TypeScript source cannot be empty"));
     }
 
+    // `id` is optional for creates. The web client normally sends a slug, but
+    // the API must also accept a new flow with no client-generated id.
     let final_id = path_id
         .or(id)
         .filter(|value| !value.trim().is_empty())
-        .ok_or_else(|| ApiError::unprocessable("Flow id cannot be empty"))?;
+        .unwrap_or_else(|| Uuid::new_v4().to_string());
 
     let final_name = name
         .filter(|value| !value.trim().is_empty())
@@ -142,7 +145,7 @@ async fn persist_flow(
 
     state
         .store
-        .upsert_flow(&final_id, &final_name, &dsl_script)
+        .upsert_flow(&final_id, &final_name, &dsl_script, graph.as_ref())
         .await
         .map_err(|err| ApiError::internal(err.to_string()))?;
 
@@ -434,7 +437,11 @@ mod tests {
         let payload = json!({
             "id": "typescript-flow",
             "name": "TypeScript flow",
-            "dsl_script": source
+            "dsl_script": source,
+            "graph": {
+                "nodes": [{"id": "task_1", "type": "task", "name": "web_scraper"}],
+                "inputs": []
+            }
         });
 
         let (status, body) = send_json(router(test_state()), "POST", "/api/flows", payload).await;
@@ -442,6 +449,7 @@ mod tests {
         assert_eq!(status, StatusCode::OK);
         let response: Value = serde_json::from_str(&body).expect("JSON response");
         assert_eq!(response["dsl_script"], source);
+        assert_eq!(response["graph"]["nodes"][0]["id"], "task_1");
     }
 
     #[tokio::test]
@@ -484,6 +492,21 @@ mod tests {
         assert_eq!(status, StatusCode::OK);
         let response: Value = serde_json::from_str(&body).expect("JSON response");
         assert_eq!(response["id"], "request-flow-id");
+    }
+
+    #[tokio::test]
+    async fn create_flow_generates_id_when_request_omits_id() {
+        let payload = json!({
+            "name": "Generated id flow",
+            "dsl_script": "export async function main() { return 42; }"
+        });
+
+        let (status, body) = send_json(router(test_state()), "POST", "/api/flows", payload).await;
+
+        assert_eq!(status, StatusCode::OK);
+        let response: Value = serde_json::from_str(&body).expect("JSON response");
+        assert!(response["id"].as_str().is_some_and(|id| !id.is_empty()));
+        assert_eq!(response["name"], "Generated id flow");
     }
 
     #[tokio::test]

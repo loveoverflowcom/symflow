@@ -10,6 +10,7 @@
     value: Record<string, unknown>;
     disabled?: boolean;
   }>();
+  let objectErrors = $state<Record<string, string>>({});
 
   const fields = $derived(schemaFields(schema));
 
@@ -36,6 +37,12 @@
     return value[key] === true;
   }
 
+  function selectedFileLabel(key: string): string | null {
+    const current = value[key];
+    if (typeof File === 'undefined' || !(current instanceof File)) return null;
+    return `${current.name} (${(current.size / 1024).toFixed(1)} KB)`;
+  }
+
   function updateArray(key: string, rawValue: string, field: FieldSchema) {
     const values = rawValue
       .split(',')
@@ -54,6 +61,23 @@
 
     setField(key, values);
   }
+
+  function objectValue(key: string): string {
+    const current = value[key];
+    return JSON.stringify(current && typeof current === 'object' && !Array.isArray(current) ? current : {}, null, 2);
+  }
+
+  function updateObject(key: string, rawValue: string) {
+    try {
+      const parsed = JSON.parse(rawValue) as unknown;
+      if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('Enter a JSON object.');
+      setField(key, parsed);
+      const { [key]: _ignored, ...remaining } = objectErrors;
+      objectErrors = remaining;
+    } catch (error) {
+      objectErrors = { ...objectErrors, [key]: error instanceof Error ? error.message : 'Invalid JSON object.' };
+    }
+  }
 </script>
 
 <div class="workflow-input-form">
@@ -67,11 +91,15 @@
       </span>
 
       {#if field.format === 'binary'}
+        {@const fileLabel = selectedFileLabel(key)}
         <input
           type="file"
           {disabled}
           onchange={(event) => setField(key, event.currentTarget.files?.[0])}
         />
+        {#if fileLabel}
+          <small class="file-hint">{fileLabel}</small>
+        {/if}
       {:else if field.type === 'boolean'}
         <input
           type="checkbox"
@@ -97,6 +125,14 @@
           {disabled}
           oninput={(event) => updateArray(key, event.currentTarget.value, field)}
         />
+      {:else if field.type === 'object'}
+        <textarea
+          rows="4"
+          value={objectValue(key)}
+          {disabled}
+          oninput={(event) => updateObject(key, event.currentTarget.value)}
+        ></textarea>
+        {#if objectErrors[key]}<small class="field-error">{objectErrors[key]}</small>{/if}
       {:else}
         <input
           type={field.format === 'uri' ? 'url' : field.format === 'date' ? 'date' : 'text'}
@@ -133,6 +169,14 @@
     font-style: normal;
     font-weight: 500;
   }
+
+  .file-hint {
+    color: var(--text-muted);
+    font-size: 0.82rem;
+  }
+
+  .field-error { color: #b52d3c; }
+  .workflow-field textarea { resize: vertical; font-family: monospace; font-size: .8rem; }
 
   .checkbox-field {
     grid-template-columns: minmax(0, 1fr) auto;

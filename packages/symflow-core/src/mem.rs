@@ -34,7 +34,13 @@ impl Default for MemoryStore {
 
 #[async_trait]
 impl Store for MemoryStore {
-    async fn upsert_flow(&self, id: &str, name: &str, dsl_script: &str) -> Result<(), StoreError> {
+    async fn upsert_flow(
+        &self,
+        id: &str,
+        name: &str,
+        dsl_script: &str,
+        graph: Option<&Value>,
+    ) -> Result<(), StoreError> {
         let mut inner = self.inner.lock().unwrap();
         let created_at = inner
             .flows
@@ -48,6 +54,7 @@ impl Store for MemoryStore {
                 id: id.into(),
                 name: name.into(),
                 dsl_script: dsl_script.into(),
+                graph: graph.cloned(),
                 created_at,
             },
         );
